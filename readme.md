@@ -191,7 +191,8 @@ template form.
 ## Gestures
 
 `whileHover`, `whilePress`, and `whileFocus` each define a target that applies
-only while that state is active.
+only while that state is active. Drag (`drag`, `dragControls`) is not
+implemented.
 
 ```tsx
 <motion.button
@@ -532,18 +533,6 @@ signal ref, matching this package's own ref convention rather than motion-dom's
 an explicit element or array, or a sequence of `[target, definition]` steps
 played one after another. `createWillChange` builds a shared `will-change` value
 that several independent animations can each add a hint to.
-
-## Out of scope
-
-Drag (`drag`, `dragControls`) is not implemented. Layout proved that
-`VisualElement` is not required for projection, so that is
-no longer why drag stays out: the actual reason is that no known consumer uses it, and drag-and-drop with row reordering, autoscroll
-and a selection box is not something motion's free-drag would replace. Revisit if a real consumer appears.
-
-Recovery of arbitrary removed children is also out of scope, for the unrelated
-reason already stated above: presence requires an explicit `when` or `each`
-boundary, so an element that disappears outside one is never tracked for an
-exit.
 
 ## Development
 
