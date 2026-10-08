@@ -1,9 +1,9 @@
 # Solid Motion
 
-`@totallynotdavid/solid-motion` is a Solid-native animation package built directly
-on [`motion-dom`](https://motion.dev). It is not a port of Motion React or
-Motion Vue. Solid's reactive graph drives animation state, and the package
-starts per-value `motion-dom` animations directly.
+`@totallynotdavid/solid-motion` is an animation package for Solid. It is built
+directly on [`motion-dom`](https://motion.dev). Solid's reactive graph drives
+animation state, and the package starts per-value `motion-dom` animations
+directly.
 
 Peer dependencies are `solid-js` and `@solidjs/web`, both `^2.0.0-rc.9`.
 
@@ -534,8 +534,9 @@ that several independent animations can each add a hint to.
 
 ## Development
 
-The application compiles this package's `.tsx` source directly, so there is no
-build step. Run these commands from the package root:
+The application compiles this package's `.tsx` source directly. The `prepare`
+script emits the type declarations in `dist/` (`bun run build:types` repeats
+it). Run these commands from the package root:
 
 ```sh
 bun run test
