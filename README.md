@@ -1,23 +1,83 @@
 # Solid Motion
 
-`@totallynotdavid/solid-motion` is an animation package for Solid. It is built
-directly on [`motion-dom`](https://motion.dev). Solid's reactive graph drives
-animation state, and the package starts per-value `motion-dom` animations
-directly.
+`@totallynotdavid/solid-motion` is an animation package for Solid 2. It is built
+directly on [`motion-dom`](https://motion.dev), the framework-agnostic core of
+Motion. Solid's reactive graph drives animation state, and the package starts
+per-value `motion-dom` animations directly.
 
-Peer dependencies are `solid-js` and `@solidjs/web`, both `^2.0.0-rc.9`.
+It covers `initial`/`animate`/`exit` targets, variants and stagger, hover,
+press, focus and in-view gestures, presence (exit animations), layout and shared
+layout animations, scroll-linked values, SVG, and reduced-motion handling.
+
+## Install
+
+```sh
+npm install @totallynotdavid/solid-motion solid-js @solidjs/web
+```
+
+`solid-js` and `@solidjs/web` are peer dependencies, both `^2.0.0-rc.9`. Solid 2
+is still a prerelease, so install the `next` tag until it is stable:
+`npm install solid-js@next @solidjs/web@next`.
+
+## Setup
+
+The package ships its TSX source, not compiled JavaScript, and exposes it under
+the `solid` export condition. Your build must compile Solid JSX for
+dependencies, which `@solidjs/vite-plugin` does:
+
+```ts
+// vite.config.ts
+import solid from "@solidjs/vite-plugin";
+import { defineConfig } from "vite";
+
+export default defineConfig({ plugins: [solid()] });
+```
+
+Type declarations are emitted to `dist/` when the package is packed. With
+`"jsx": "preserve"` and `"jsxImportSource": "@solidjs/web"` in your
+`tsconfig.json`, no other TypeScript setup is needed.
+
+## Quick start
 
 ```tsx
+import { render } from "@solidjs/web";
+import { createSignal } from "solid-js";
 import { motion } from "@totallynotdavid/solid-motion";
 
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.2 }}
->
-  Fades and slides in on mount
-</motion.div>;
+function App() {
+  const [open, setOpen] = createSignal(true);
+
+  return (
+    <>
+      <button onClick={() => setOpen((value) => !value)}>Toggle</button>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: open() ? 1 : 0.2, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        Fades and slides in on mount
+      </motion.div>
+    </>
+  );
+}
+
+render(() => <App />, document.getElementById("root")!);
 ```
+
+## API overview
+
+| Export                                                                                                    | Purpose                                                     |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`motion`](#motion)                                                                                       | Animated elements: `motion.div`, `motion.create(Component)` |
+| [`createMotion`](#createmotion)                                                                           | The engine behind `motion.*`, without a component boundary  |
+| [`createMotionValue`](#createmotionvalue)                                                                 | A value that animates outside Solid's render path           |
+| [`AnimatePresence`](#presence-animatepresence--animatepresencelist), `AnimatePresenceList`, `usePresence` | Exit animations                                             |
+| [`MotionConfig`](#motionconfig--usemotionconfig), `useMotionConfig`                                       | Shared defaults for descendants                             |
+| [`useReducedMotion`](#usereducedmotion)                                                                   | Accessor for `prefers-reduced-motion`                       |
+| [`createInView`](#gestures)                                                                               | Viewport visibility as a boolean accessor                   |
+| [`stagger`, `transform`](#re-exported-helpers-stagger-transform)                                          | Re-exported from `motion-dom`                               |
+| [`createScroll`, `createVelocity`, `createTime`](#layout-scroll-values-and-imperative-primitives)         | Scroll-linked and time-linked values                        |
+| [`createAnimate`, `createWillChange`](#layout-scroll-values-and-imperative-primitives)                    | Imperative animation of elements you do not render          |
 
 ## `motion.*`
 
@@ -534,11 +594,16 @@ that several independent animations can each add a hint to.
 
 ## Development
 
-The application compiles this package's `.tsx` source directly. The `prepare`
-script emits the type declarations in `dist/` (`bun run build:types` repeats
-it). Run these commands from the package root:
-
 ```sh
-bun run test
-bunx tsc --noEmit -p tsconfig.json
+bun install
+bun run check
 ```
+
+`check` runs the type check, lint, format check, tests (vitest on jsdom, with a
+fake animation clock) and the declaration build. `bun run format` fixes
+formatting.
+
+## License
+
+[MIT](LICENSE). The animation engine is `motion-dom`, which is MIT licensed by
+its authors.
