@@ -1,6 +1,29 @@
 {
   "name": "@totallynotdavid/solid-motion",
-  "version": "0.0.1",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Animation primitives for Solid 2, built on motion-dom.",
+  "keywords": [
+    "animation",
+    "gestures",
+    "layout-animation",
+    "motion",
+    "solid",
+    "solid-js",
+    "spring"
+  ],
+  "homepage": "https://github.com/totallynotdavid/solid-motion#readme",
+  "bugs": "https://github.com/totallynotdavid/solid-motion/issues",
+  "license": "MIT",
+  "author": "totallynotdavid",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totallynotdavid/solid-motion.git"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -10,10 +33,19 @@
       "default": "./src/index.tsx"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build:types": "tsc -p tsconfig.build.json",
-    "prepare": "tsc -p tsconfig.build.json",
-    "test": "vitest run"
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "bun run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c .oxlintrc.json --deny-warnings",
+    "format": "oxfmt && bun run format:md",
+    "format:md": "prettier --print-width 80 --prose-wrap always --write '**/*.md'",
+    "check:format": "oxfmt --check && prettier --print-width 80 --prose-wrap always --check '**/*.md'",
+    "test": "vitest run",
+    "check": "bun run typecheck && bun run lint && bun run check:format && bun run test && bun run build"
   },
   "dependencies": {
     "motion-dom": "^14.0.0"
@@ -21,7 +53,12 @@
   "devDependencies": {
     "@solidjs/testing-library": "^1.0.0-beta.3",
     "@solidjs/vite-plugin": "^3.0.0-next.44",
+    "@solidjs/web": "^2.0.0-rc.14",
     "jsdom": "^30.1.2",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
+    "prettier": "^3.9.9",
+    "solid-js": "^2.0.0-rc.14",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
     "vitest": "^5.0.3"
@@ -29,5 +66,6 @@
   "peerDependencies": {
     "@solidjs/web": "^2.0.0-rc.9",
     "solid-js": "^2.0.0-rc.9"
-  }
+  },
+  "packageManager": "bun@1.4.2"
 }
