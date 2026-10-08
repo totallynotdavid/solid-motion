@@ -17,6 +17,7 @@ import {
   usePresence,
   type AnimateFunction,
   type AnimateScope,
+  type Transition,
 } from "../src";
 import { buildInitialRender } from "../src/initial";
 import { advance, outcomeWithin, settled, useFakeClock } from "./clock";
@@ -108,7 +109,7 @@ describe("motion", () => {
         custom={20}
         initial="hidden"
         variants={{
-          hidden: (distance: number) => ({ y: distance, opacity: 0 }),
+          hidden: (distance) => ({ y: distance as number, opacity: 0 }),
         }}
       />
     ));
@@ -595,7 +596,7 @@ function stubNaturalHeight(element: HTMLElement, natural: number) {
 describe("MotionConfig", () => {
   afterEach(() => document.body.replaceChildren());
 
-  const skipping = (target: Record<string, unknown>) => (
+  const skipping = (target: { opacity: number; transition?: Transition }) => (
     <MotionConfig skipAnimations>
       <motion.div initial={{ opacity: 0 }} animate={target} />
     </MotionConfig>

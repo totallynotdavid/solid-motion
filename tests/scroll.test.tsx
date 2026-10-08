@@ -501,7 +501,7 @@ describe("createVelocity", () => {
     let x!: ReturnType<typeof createMotionValue<number>>;
     let velocity!: ReturnType<typeof createVelocity>;
     const dispose = createRoot((disposeRoot) => {
-      x = createMotionValue(0);
+      x = createMotionValue<number>(0);
       velocity = createVelocity(x);
       return disposeRoot;
     });
