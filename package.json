@@ -1,6 +1,6 @@
 {
   "name": "@totallynotdavid/solid-motion",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": false,
   "description": "Animation primitives for Solid 2, built on motion-dom.",
   "keywords": [
