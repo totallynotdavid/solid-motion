@@ -59,10 +59,33 @@ The children are a function. It receives the truthy `when` value.
 | `when`           | What is on screen. Also the key.                               |
 | `initial`        | `false` skips the entrance of everything the boundary renders. |
 | `custom`         | Passed to the variant functions of the elements inside.        |
-| `mode`           | `"sync"` (default) or `"wait"`. See below.                     |
+| `mode`           | `"sync"` (default), `"wait"` or `"popLayout"`. See below.      |
+| `anchorX`        | With `popLayout`, `"left"` (default) or `"right"`.             |
+| `anchorY`        | With `popLayout`, `"top"` (default) or `"bottom"`.             |
+| `propagate`      | Exit when an enclosing boundary exits. See below.              |
 | `onExitComplete` | Called when no subtree is still leaving.                       |
 
 `mode="wait"` holds a new subtree back until the old one has gone.
+
+`mode="popLayout"` takes the leaving elements out of the flow as they start to
+leave, so their siblings move into the gap at once while the exit plays. The
+element keeps its size and place. Use `anchorX="right"` or `anchorY="bottom"`
+for an element that is positioned from that side. If the subtree comes back
+before it has gone, the element goes back into the flow. Combine it with
+[`layout`](layout.md) on the siblings to animate them into the gap.
+
+```tsx
+<AnimatePresenceList each={items()} getKey={(item) => item.id} mode="popLayout">
+  {(item) => (
+    <motion.li layout exit={{ opacity: 0, scale: 0.8 }}>
+      {item().label}
+    </motion.li>
+  )}
+</AnimatePresenceList>
+```
+
+`onExitComplete` is called once, after the last leaving subtree has gone. For a
+list, that is after the last leaving row.
 
 ## AnimatePresenceList
 
@@ -91,10 +114,11 @@ picks up new data without being rebuilt.
 A removed row stays at its old position until its exit ends. It does not drop to
 the end of the list.
 
-`AnimatePresenceList` takes the same `initial`, `custom`, `mode` and
-`onExitComplete` props. With `mode="wait"`, only the rows that are leaving are
-rendered until the last one has gone. The other rows are removed and created
-again after that, so use `"wait"` for a list that shows one row at a time.
+`AnimatePresenceList` takes the same `initial`, `custom`, `mode`, `anchorX`,
+`anchorY`, `propagate` and `onExitComplete` props. With `mode="wait"`, only the
+rows that are leaving are rendered until the last one has gone. The other rows
+are removed and created again after that, so use `"wait"` for a list that shows
+one row at a time.
 
 ## How an exit finishes
 
@@ -109,10 +133,49 @@ outer subtree leaves while an inner boundary inside it is still animating out,
 the outer boundary does not wait for the inner one, and the inner exit is cut
 short. Put the boundary at the level that has to wait.
 
+An inner boundary with `propagate` leaves when the outer one does, and holds the
+outer one open until its own exit has finished.
+
+## useIsPresent and usePresenceData
+
+`useIsPresent()` returns an accessor that is `false` while the current subtree
+is leaving, and `true` outside a boundary. Use it to stop work or disable a
+button in a row that is on its way out.
+
+`usePresenceData()` returns an accessor for the boundary's `custom`. A subtree
+that has left its owner no longer receives new props, so this is how an exit
+learns where to go.
+
+```tsx
+import {
+  AnimatePresence,
+  motion,
+  usePresenceData,
+} from "@totallynotdavid/solid-motion";
+
+function Slide() {
+  const direction = usePresenceData<number>();
+
+  return (
+    <motion.div
+      initial={{ x: 100 }}
+      animate={{ x: 0 }}
+      exit={{ x: (direction() ?? 1) * -100 }}
+    />
+  );
+}
+
+<AnimatePresence when={page()} custom={step()}>
+  {() => <Slide />}
+</AnimatePresence>;
+```
+
 ## usePresence
 
 `usePresence()` returns the boundary around the current component, or `null` if
-there is none. You rarely need it. The object has:
+there is none. You rarely need it;
+[`useIsPresent`](#useispresent-and-usepresencedata) covers the common case. The
+object has:
 
 - `isPresent()`: `false` while the subtree is leaving.
 - `hold()`: takes a hold and returns the function that releases it. Release it
