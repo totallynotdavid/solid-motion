@@ -15,6 +15,8 @@ import {
   createScroll,
   createTime,
   createVelocity,
+  scrollOffsets,
+  type ScrollOffset,
 } from "../src";
 import { advance, useFakeClock } from "./clock";
 
@@ -539,5 +541,104 @@ describe("createTime", () => {
     dispose();
     await tick();
     expect(value.get()).toBe(beforeDispose);
+  });
+});
+
+describe("createScroll offset definitions", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  /**
+   * A 200px-high container whose child target is 100px high and starts 500px
+   * down, so the scroll position that meets any edge is easy to work out.
+   */
+  async function trackTarget(offset: ScrollOffset) {
+    let scroll!: ReturnType<typeof createScroll>;
+    let targetEl!: HTMLElement;
+    const { container } = render(() => {
+      const [node, setNode] = createSignal<HTMLElement>();
+      scroll = createScroll({
+        container: node,
+        target: () => targetEl,
+        offset,
+      });
+      return (
+        <div ref={setNode}>
+          <div ref={(el) => (targetEl = el)} />
+        </div>
+      );
+    });
+    const element = container.querySelector("div") as HTMLElement;
+    element.style.position = "relative";
+    stubBox(element, { clientHeight: 200, scrollHeight: 1000 });
+    stubBox(targetEl, { clientHeight: 100 });
+    stubOffset(targetEl, { offsetTop: 500, offsetParent: element });
+    flush();
+
+    return async (scrollTop: number) => {
+      element.scrollTop = scrollTop;
+      element.dispatchEvent(new Event("scroll"));
+      await tick();
+      return scroll.scrollYProgress.get();
+    };
+  }
+
+  it("reads named edges as `target container` pairs", async () => {
+    const progressAt = await trackTarget(["start end", "end end"]);
+
+    expect(await progressAt(300)).toBe(0);
+    expect(await progressAt(350)).toBeCloseTo(0.5);
+    expect(await progressAt(400)).toBe(1);
+  });
+
+  it("reads lengths and percentages", async () => {
+    const px = await trackTarget(["start end", "100px end"]);
+    expect(await px(300)).toBe(0);
+    expect(await px(350)).toBeCloseTo(0.5);
+    expect(await px(400)).toBe(1);
+    document.body.replaceChildren();
+
+    const percent = await trackTarget(["start end", "100% end"]);
+    expect(await percent(300)).toBe(0);
+    expect(await percent(350)).toBeCloseTo(0.5);
+    expect(await percent(400)).toBe(1);
+  });
+
+  it("reads a lone named edge as that edge of both elements", async () => {
+    const progressAt = await trackTarget(["end", "start"]);
+
+    expect(await progressAt(400)).toBe(0);
+    expect(await progressAt(450)).toBeCloseTo(0.5);
+    expect(await progressAt(500)).toBe(1);
+  });
+
+  it("passes through every point of a longer offset", async () => {
+    const progressAt = await trackTarget([
+      "start end",
+      "end end",
+      "start start",
+    ]);
+
+    expect(await progressAt(300)).toBe(0);
+    expect(await progressAt(350)).toBeCloseTo(0.25);
+    expect(await progressAt(400)).toBeCloseTo(0.5);
+    expect(await progressAt(450)).toBeCloseTo(0.75);
+    expect(await progressAt(600)).toBe(1);
+  });
+
+  it("offers presets for entering, exiting and being in view", async () => {
+    const enter = await trackTarget(scrollOffsets.enter);
+    expect(await enter(300)).toBe(0);
+    expect(await enter(400)).toBe(1);
+    document.body.replaceChildren();
+
+    const exit = await trackTarget(scrollOffsets.exit);
+    expect(await exit(500)).toBe(0);
+    expect(await exit(600)).toBe(1);
+    document.body.replaceChildren();
+
+    const any = await trackTarget(scrollOffsets.any);
+    expect(await any(300)).toBe(0);
+    expect(await any(450)).toBeCloseTo(0.5);
+    expect(await any(600)).toBe(1);
   });
 });
