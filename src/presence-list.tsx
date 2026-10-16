@@ -7,6 +7,7 @@ import {
   type Accessor,
 } from "solid-js";
 
+import { popAnchorFor, type PresenceBehaviour } from "./pop-layout";
 import { PresenceChild } from "./presence";
 
 /** One item the boundary is keeping on screen, present or on its way out. */
@@ -16,13 +17,12 @@ interface PresenceEntry<T> {
   present: boolean;
 }
 
-export interface AnimatePresenceListProps<T> {
+export interface AnimatePresenceListProps<T> extends PresenceBehaviour {
   each: readonly T[];
   getKey: (item: T) => string;
   children: (item: Accessor<T>) => JSX.Element;
   initial?: boolean;
   custom?: unknown;
-  mode?: "sync" | "wait";
   onExitComplete?: () => void;
 }
 
@@ -65,16 +65,21 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
   });
 
   const completeExit = (key: string) => {
+    // Decided inside the updater: a signal read still returns the old list
+    // until the next flush, which would count the row that has just left.
+    let removed = false;
+    let stillLeaving = false;
     setEntries((current) => {
       // The item can have come back while its exit was still playing.
       const leaving = current.find((entry) => entry.key === key);
       if (!leaving || leaving.present) return current;
-      return current.filter((entry) => entry.key !== key);
+      removed = true;
+      const remaining = current.filter((entry) => entry.key !== key);
+      stillLeaving = remaining.some((entry) => !entry.present);
+      return remaining;
     });
 
-    if (!untrack(entries).some((entry) => !entry.present)) {
-      props.onExitComplete?.();
-    }
+    if (removed && !stillLeaving) props.onExitComplete?.();
   };
 
   return (
@@ -84,6 +89,8 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
           isPresent={entry().present}
           initial={props.initial}
           custom={props.custom}
+          pop={popAnchorFor(props)}
+          propagate={props.propagate}
           onExitComplete={() => completeExit(untrack(entry).key)}
         >
           {props.children(() => entry().item)}

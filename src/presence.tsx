@@ -1,4 +1,5 @@
 import {
+  children as resolveChildren,
   createContext,
   createEffect,
   createMemo,
@@ -12,6 +13,14 @@ import {
   type Element,
 } from "solid-js";
 
+import {
+  measureForPop,
+  pop,
+  popAnchorFor,
+  type PopAnchor,
+  type PopSnapshot,
+  type PresenceBehaviour,
+} from "./pop-layout";
 import type { PresenceScope } from "./types";
 
 const PresenceContext = createContext<PresenceScope | null>(null);
@@ -24,11 +33,34 @@ export function usePresence(): PresenceScope | null {
   return useContext(PresenceContext);
 }
 
+/**
+ * Whether this part of the tree is on screen, as opposed to playing its exit.
+ * Outside a boundary it is always `true`.
+ */
+export function useIsPresent(): Accessor<boolean> {
+  const scope = useContext(PresenceContext);
+  return () => (scope ? scope.isPresent() : true);
+}
+
+/**
+ * The boundary's `custom` value. It is how data reaches a subtree that has
+ * already left its owner's props, which is when an exit has to know where to
+ * go.
+ */
+export function usePresenceData<T = unknown>(): Accessor<T | undefined> {
+  const scope = useContext(PresenceContext);
+  return () => scope?.custom() as T | undefined;
+}
+
 interface PresenceChildProps {
   children: Element;
   isPresent: boolean;
   initial?: boolean;
   custom?: unknown;
+  /** Take the subtree's top-level elements out of flow when it starts to leave. */
+  pop?: PopAnchor;
+  /** Leave when the enclosing boundary leaves, and keep it waiting meanwhile. */
+  propagate?: boolean;
   onExitComplete: () => void;
 }
 
@@ -42,17 +74,26 @@ interface PresenceChildProps {
  * terminal path, including the one where it lost.
  */
 export function PresenceChild(props: PresenceChildProps) {
+  const parent = useContext(PresenceContext);
   let holds = 0;
+  let parentRelease: VoidFunction | undefined;
+  let nodes: ReturnType<typeof resolveChildren> | undefined;
+  let unpop: VoidFunction | undefined;
+
+  const isPresent = () =>
+    props.isPresent && !(props.propagate && parent && !parent.isPresent());
 
   const leaveIfDone = () => {
     if (holds !== 0) return;
     // The item can come back inside the same flush that its exit started in.
-    if (untrack(() => props.isPresent)) return;
+    if (untrack(isPresent)) return;
+    parentRelease?.();
+    parentRelease = undefined;
     props.onExitComplete();
   };
 
   const scope: PresenceScope = {
-    isPresent: () => props.isPresent,
+    isPresent,
     initial: () => props.initial,
     custom: () => props.custom,
     hold: () => {
@@ -67,10 +108,47 @@ export function PresenceChild(props: PresenceChildProps) {
     },
   };
 
+  let wasPresent = true;
   createEffect(
-    () => props.isPresent,
-    (isPresent) => {
-      if (isPresent) return;
+    () => {
+      const present = isPresent();
+      // The measurement has to precede whatever this same update does to the
+      // document, such as a sibling entering. Effect computes all run before
+      // any DOM write of the flush, which an apply step does not.
+      let snapshots: PopSnapshot[] = [];
+      if (!present && wasPresent && props.pop) {
+        snapshots = untrack(() => nodes?.toArray() ?? [])
+          .filter((node): node is HTMLElement => node instanceof HTMLElement)
+          .map(measureForPop);
+      }
+      wasPresent = present;
+      return {
+        present,
+        snapshots,
+        anchor: props.pop,
+        followsParent: !!(props.propagate && parent && !parent.isPresent()),
+      };
+    },
+    ({ present, snapshots, anchor, followsParent }) => {
+      if (present) {
+        unpop?.();
+        unpop = undefined;
+        parentRelease?.();
+        parentRelease = undefined;
+        return;
+      }
+
+      if (anchor && snapshots.length > 0) {
+        const undo = snapshots.map((snapshot) => pop(snapshot, anchor));
+        unpop = () => undo.forEach((restore) => restore());
+      }
+
+      // Taken in the flush the parent started leaving in, so the parent's own
+      // count is final by the time it checks.
+      if (followsParent && parent && !parentRelease) {
+        parentRelease = parent.hold();
+      }
+
       // Anything with an exit to play takes its hold in this same flush, so by
       // the next microtask the count is final. Still zero means nothing under
       // this item had an exit at all, and it can leave now.
@@ -78,7 +156,16 @@ export function PresenceChild(props: PresenceChildProps) {
     },
   );
 
-  return <PresenceContext value={scope}>{props.children}</PresenceContext>;
+  const Body = () => {
+    nodes = resolveChildren(() => props.children);
+    return <>{nodes()}</>;
+  };
+
+  return (
+    <PresenceContext value={scope}>
+      <Body />
+    </PresenceContext>
+  );
 }
 
 /** One subtree the boundary is keeping on screen, entering or on its way out. */
@@ -91,7 +178,7 @@ interface Rendering {
   dispose: VoidFunction;
 }
 
-export interface AnimatePresenceProps<T> {
+export interface AnimatePresenceProps<T> extends PresenceBehaviour {
   /**
    * What is on screen, and its identity in one value. Falsy renders nothing;
    * changing it to a different truthy value swaps, with the outgoing subtree
@@ -102,8 +189,6 @@ export interface AnimatePresenceProps<T> {
   /** `false` skips the entrance on first render, for a subtree already on screen. */
   initial?: boolean;
   custom?: unknown;
-  /** `wait` holds the newcomer back until the outgoing subtree is gone. */
-  mode?: "sync" | "wait";
   onExitComplete?: () => void;
 }
 
@@ -126,14 +211,18 @@ export function AnimatePresence<T>(props: AnimatePresenceProps<T>): Element {
   const remove = (rendering: Rendering) => {
     // Dropped from the list first: Solid takes the nodes out of the document,
     // and only then is it safe to tear down the reactivity behind them.
-    setRenderings((current) => current.filter((entry) => entry !== rendering));
+    //
+    // Decided inside the updater: a signal read still returns the old list
+    // until the next flush, so reading it afterwards would count the subtree
+    // that has just left as still leaving, and the callback would never fire.
+    let stillLeaving = false;
+    setRenderings((current) => {
+      const remaining = current.filter((entry) => entry !== rendering);
+      stillLeaving = remaining.some((entry) => !untrack(entry.present));
+      return remaining;
+    });
     rendering.dispose();
 
-    // Snapshot reads, not subscriptions. Solid 2 warns about a bare read here
-    // for good reason, and `untrack` is how you say the snapshot is the point.
-    const stillLeaving = untrack(() =>
-      renderings().some((entry) => !entry.present()),
-    );
     if (!stillLeaving) props.onExitComplete?.();
   };
 
@@ -150,6 +239,8 @@ export function AnimatePresence<T>(props: AnimatePresenceProps<T>): Element {
             isPresent={present()}
             initial={props.initial}
             custom={props.custom}
+            pop={popAnchorFor(props)}
+            propagate={props.propagate}
             onExitComplete={() => remove(rendering)}
           >
             {props.children(key)}
