@@ -8,39 +8,93 @@ export {
   type AnimateSequence,
   type AnimateTarget,
 } from "./create-animate";
+export {
+  createAnimationControls,
+  type AnimationControls,
+} from "./animation-controls";
+export { createCycle, type Cycle } from "./cycle";
 export { createWillChange } from "./create-will-change";
 export {
+  createAnimationFrame,
+  createMotionTemplate,
   createMotionValue,
+  createMotionValueEvent,
   createTime,
+  createTransform,
   createVelocity,
   type MotionSource,
 } from "./motion-values";
+export { createPageInView } from "./page-visibility";
+export { isMotionValue } from "motion-dom";
 export {
   createScroll,
+  scrollOffsets,
+  type ScrollEdge,
   type ScrollOffset,
+  type ScrollOffsetPoint,
   type ScrollOptions,
   type ScrollValues,
 } from "./scroll";
 // The pure interpolator behind Motion's `useTransform` range form. In Solid a
 // derived value is an accessor over it, not a second value to keep in sync.
 export { transform } from "motion-dom";
+// Framework-agnostic helpers that need no binding. `delay` takes seconds.
+export {
+  addScaleCorrector,
+  animateView,
+  delayInSeconds as delay,
+  mix,
+  spring,
+} from "motion-dom";
 // Builds the per-child delay function `delayChildren` takes: motion's own
 // replacement for `staggerChildren`/`staggerDirection`, which stay supported
 // as the plain-number convenience they always were.
 export { stagger } from "motion-dom";
 export {
   AnimatePresence,
+  useIsPresent,
   usePresence,
+  usePresenceData,
   type AnimatePresenceProps,
 } from "./presence";
 export {
   AnimatePresenceList,
   type AnimatePresenceListProps,
 } from "./presence-list";
-export { MotionConfig, useMotionConfig } from "./config";
+export {
+  MotionConfig,
+  useMotionConfig,
+  useReducedMotionConfig,
+} from "./config";
 export { useReducedMotion } from "./reduced-motion";
 export { createInView } from "./gestures";
-export type { LayoutOption } from "./projection";
+export type {
+  EventInfo,
+  HoverHandler,
+  TapHandler,
+  TapInfo,
+  ViewportHandler,
+} from "./gestures";
+export {
+  createDragControls,
+  type DragAxis,
+  type DragBounds,
+  type DragConstraints,
+  type DragControls,
+  type DragHandler,
+  type DragOptions,
+  type DragStartOptions,
+} from "./drag";
+export type { PanHandler, PanInfo, PanOptions } from "./pan";
+export {
+  Reorder,
+  type ReorderGroupProps,
+  type ReorderItemProps,
+} from "./reorder";
+export type { ReorderAxis } from "./reorder-order";
+export { LayoutGroup, type LayoutGroupProps } from "./layout-group";
+export { instantLayoutTransition, resetLayout } from "./layout-updates";
+export type { LayoutAnchor, LayoutBox, LayoutOption } from "./projection";
 export type {
   AnimationDefinition,
   MotionComponent,

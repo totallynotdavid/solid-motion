@@ -1,7 +1,31 @@
-import { addDomEvent, hover, press } from "motion-dom";
-import { createEffect, createSignal, type Accessor } from "solid-js";
+import {
+  addDomEvent,
+  frame,
+  hover,
+  press,
+  type EventInfo,
+  type TapInfo,
+} from "motion-dom";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  untrack,
+  type Accessor,
+} from "solid-js";
 
 import type { AnimationDefinition } from "./types";
+
+export type { EventInfo, TapInfo };
+
+/** The pointer position of an event, in page coordinates. */
+function eventInfo(event: PointerEvent): EventInfo {
+  return { point: { x: event.pageX, y: event.pageY } };
+}
+
+export type TapHandler = (event: PointerEvent, info: TapInfo) => void;
+export type HoverHandler = (event: PointerEvent, info: EventInfo) => void;
+export type ViewportHandler = (entry: IntersectionObserverEntry) => void;
 
 /**
  * The slice of the motion options this module reads. Narrower than the whole
@@ -10,7 +34,19 @@ import type { AnimationDefinition } from "./types";
  */
 export type GestureOptions = Partial<
   Record<GestureName, AnimationDefinition>
-> & { viewport?: ViewportOptions };
+> & {
+  viewport?: ViewportOptions;
+  onHoverStart?: HoverHandler;
+  onHoverEnd?: HoverHandler;
+  onTapStart?: TapHandler;
+  onTap?: TapHandler;
+  onTapCancel?: TapHandler;
+  /** Ends a tap that starts on this element wherever the pointer is released. */
+  globalTapTarget?: boolean;
+  propagate?: { tap?: boolean };
+  onViewportEnter?: ViewportHandler;
+  onViewportLeave?: ViewportHandler;
+};
 
 /**
  * The gesture states an element can be in, lowest priority first. `animate`
@@ -20,7 +56,8 @@ export const gestureNames = [
   "whileInView",
   "whileFocus",
   "whileHover",
-  "whilePress",
+  "whileTap",
+  "whileDrag",
 ] as const;
 
 export type GestureName = (typeof gestureNames)[number];
@@ -35,9 +72,9 @@ export interface ViewportOptions {
   amount?: "some" | "all" | number;
 }
 
+type GestureTarget = HTMLElement | SVGElement;
+
 /**
- * Starts watching one gesture and returns the disposer the owning scope needs.
- *
  * Hover and press come from motion-dom rather than from `pointerenter` and
  * `pointerdown` listeners written here. They are not thin wrappers: hover
  * filters polyfilled touch events, defers its end while a press is in flight so
@@ -45,32 +82,72 @@ export interface ViewportOptions {
  * while a drag is active. Press filters secondary and multi-touch pointers,
  * ends on the capture phase so a child calling `stopPropagation` cannot strand
  * it, and drives the same gesture from Enter keydown/keyup for keyboards.
+ *
+ * Callbacks run on `postRender`, after the frame that applied the state, so a
+ * handler that reads the element sees the gesture's animation already started.
+ * They are read from `options` at the moment of the event, not captured, so a
+ * handler that changes between renders is the one that runs.
  */
-function observeGesture(
-  name: GestureName,
-  element: HTMLElement | SVGElement,
+function observeHover(
+  element: GestureTarget,
   setActive: (active: boolean) => void,
-  viewport?: ViewportOptions,
+  options: () => GestureOptions,
 ): VoidFunction {
-  if (name === "whileInView") {
-    return observeInView(element, setActive, viewport);
-  }
+  return hover(element, (_element, startEvent) => {
+    setActive(true);
+    notify(() => options().onHoverStart, startEvent);
 
-  if (name === "whileHover") {
-    return hover(element, () => {
+    return (endEvent) => {
+      setActive(false);
+      notify(() => options().onHoverEnd, endEvent);
+    };
+  });
+}
+
+interface TapSettings {
+  globalTapTarget: boolean | undefined;
+  stopPropagation: boolean;
+}
+
+function observeTap(
+  element: GestureTarget,
+  setActive: (active: boolean) => void,
+  options: () => GestureOptions,
+  { globalTapTarget, stopPropagation }: TapSettings,
+): VoidFunction {
+  // A disabled button gets no pointer events from the browser, but a press
+  // that began elsewhere and a keyboard Enter can still reach it.
+  const isDisabled = () =>
+    element instanceof HTMLButtonElement && element.disabled;
+
+  return press(
+    element,
+    (_element, startEvent) => {
+      if (isDisabled()) return undefined;
+
       setActive(true);
-      return () => setActive(false);
-    });
-  }
+      notify(() => options().onTapStart, startEvent);
 
-  if (name === "whilePress") {
-    return press(element, () => {
-      setActive(true);
-      return () => setActive(false);
-    });
-  }
+      return (endEvent, { success }) => {
+        setActive(false);
+        notify(
+          () => (success ? options().onTap : options().onTapCancel),
+          endEvent,
+        );
+      };
+    },
+    {
+      useGlobalTarget: globalTapTarget,
+      stopPropagation,
+    },
+  );
+}
 
-  return observeFocus(element, setActive);
+function notify(
+  handler: () => HoverHandler | TapHandler | undefined,
+  event: PointerEvent,
+): void {
+  frame.postRender(() => untrack(handler)?.(event, eventInfo(event)));
 }
 
 const visibilityThresholds = { some: 0, all: 1 } as const;
@@ -80,24 +157,30 @@ const visibilityThresholds = { some: 0, all: 1 } as const;
  * lives in framer-motion, and depending on that package to reach it would drag
  * back the animation engine wrapper we deliberately left behind.
  *
- * `once` unobserves on entry rather than checking a flag on every callback, so
- * a list that has finished revealing stops costing anything.
+ * `onChange` only hears about changes: the observer's first report for an
+ * element that starts out of view is not a "leave". `once` unobserves on entry
+ * rather than checking a flag on every callback, so a list that has finished
+ * revealing stops costing anything.
  */
 function observeInView(
-  element: HTMLElement | SVGElement,
-  setActive: (active: boolean) => void,
+  element: GestureTarget,
+  onChange: (inView: boolean, entry: IntersectionObserverEntry) => void,
   { once = false, root, margin, amount = "some" }: ViewportOptions = {},
 ): VoidFunction {
   if (typeof IntersectionObserver === "undefined") return () => undefined;
 
+  let inView = false;
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (entry.isIntersecting) {
-          setActive(true);
+        if (entry.isIntersecting === inView) continue;
+        inView = entry.isIntersecting;
+
+        if (inView) {
+          onChange(true, entry);
           if (once) observer.unobserve(entry.target);
         } else if (!once) {
-          setActive(false);
+          onChange(false, entry);
         }
       }
     },
@@ -149,7 +232,7 @@ export function createInView(
  * animation consistent with what that browser paints.
  */
 function observeFocus(
-  element: HTMLElement | SVGElement,
+  element: GestureTarget,
   setActive: (active: boolean) => void,
 ): VoidFunction {
   const onFocus = () => {
@@ -171,38 +254,98 @@ function observeFocus(
   };
 }
 
+export interface GestureStates {
+  states: Record<GestureName, Accessor<boolean>>;
+  /** `whileDrag` has no listener of its own: the drag engine reports into it. */
+  setDragging: (dragging: boolean) => void;
+}
+
 /**
- * One signal per gesture, with listeners attached only while the matching prop
- * exists, so an element without `whileHover` pays for no pointer listeners.
+ * One signal per gesture, with listeners attached only while a matching prop
+ * exists, so an element without `whileHover` or `onHoverStart` pays for no
+ * pointer listeners.
  *
  * The node arrives through a signal rather than a `let`, because an effect
  * cannot observe a plain variable being assigned by a ref callback.
  */
 export function watchGestures(
   options: () => GestureOptions,
-  element: Accessor<HTMLElement | SVGElement | undefined>,
-): Record<GestureName, Accessor<boolean>> {
+  element: Accessor<GestureTarget | undefined>,
+): GestureStates {
   const states = {} as Record<GestureName, Accessor<boolean>>;
+  const setters = {} as Record<GestureName, (active: boolean) => void>;
 
   for (const name of gestureNames) {
     const [active, setActive] = createSignal(false);
     states[name] = active;
-
-    createEffect(
-      () => {
-        if (options()[name] === undefined) return undefined;
-        const node = element();
-        if (!node) return undefined;
-        // Re-read the viewport options here so changing them re-observes
-        // instead of leaving a stale IntersectionObserver in place.
-        return { node, viewport: options().viewport };
-      },
-      (spec) =>
-        spec
-          ? observeGesture(name, spec.node, setActive, spec.viewport)
-          : undefined,
-    );
+    setters[name] = setActive;
   }
 
-  return states;
+  /** Keeps one observer active until its enablement or settings change. */
+  const observe = <T>(
+    wanted: () => boolean,
+    key: () => T,
+    start: (node: GestureTarget, key: T) => VoidFunction,
+  ) => {
+    const enabled = createMemo(wanted);
+    createEffect(
+      () => {
+        if (!enabled()) return undefined;
+        const node = element();
+        if (!node) return undefined;
+        return { node, key: key() };
+      },
+      (spec) => (spec ? start(spec.node, spec.key) : undefined),
+    );
+  };
+
+  const has = (...keys: (keyof GestureOptions)[]) => {
+    const current = options();
+    return keys.some((key) => current[key] !== undefined);
+  };
+
+  observe(
+    () => has("whileHover", "onHoverStart", "onHoverEnd"),
+    () => undefined,
+    (node) => observeHover(node, setters.whileHover, options),
+  );
+
+  // `press` takes both settings when it starts, so a change restarts it. The
+  // boolean is a memo so a new `propagate` object with the same meaning does not.
+  const stopsTapPropagation = createMemo(
+    () => options().propagate?.tap === false,
+  );
+  observe(
+    () => has("whileTap", "onTapStart", "onTap", "onTapCancel"),
+    (): TapSettings => ({
+      globalTapTarget: options().globalTapTarget,
+      stopPropagation: stopsTapPropagation(),
+    }),
+    (node, settings) => observeTap(node, setters.whileTap, options, settings),
+  );
+
+  observe(
+    () => has("whileFocus"),
+    () => undefined,
+    (node) => observeFocus(node, setters.whileFocus),
+  );
+
+  // Re-read the viewport options here so changing them re-observes instead of
+  // leaving a stale IntersectionObserver in place.
+  observe(
+    () => has("whileInView", "onViewportEnter", "onViewportLeave"),
+    () => options().viewport,
+    (node, viewport) =>
+      observeInView(
+        node,
+        (inView, entry) => {
+          setters.whileInView(inView);
+          const current = untrack(options);
+          (inView ? current.onViewportEnter : current.onViewportLeave)?.(entry);
+        },
+        viewport,
+      ),
+  );
+
+  return { states, setDragging: setters.whileDrag };
 }

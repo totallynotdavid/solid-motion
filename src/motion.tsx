@@ -2,28 +2,12 @@ import { Dynamic, type JSX } from "@solidjs/web";
 import { createMemo, merge, omit } from "solid-js";
 
 import { createMotion } from "./create-motion";
-import { gestureNames } from "./gestures";
 import { plainStyle } from "./motion-values";
+import { motionOptionKeys } from "./option-keys";
 import type { MotionComponent, MotionProps, MotionProxy } from "./types";
 import { VariantContext } from "./variants";
 
-const motionPropKeys = [
-  "animate",
-  "custom",
-  "exit",
-  "initial",
-  "layout",
-  "layoutId",
-  "onAnimationComplete",
-  "onAnimationStart",
-  "onUpdate",
-  "ref",
-  "style",
-  "transition",
-  "variants",
-  "viewport",
-  ...gestureNames,
-] as const;
+const motionPropKeys = [...motionOptionKeys, "ref"] as const;
 
 type MotionHost =
   | keyof JSX.IntrinsicElements

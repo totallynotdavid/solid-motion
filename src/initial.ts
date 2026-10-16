@@ -8,7 +8,7 @@ import {
 } from "motion-dom";
 
 import { attributeName, isSvgTag } from "./svg";
-import type { TargetAndTransition } from "./types";
+import type { TargetAndTransition, TransformTemplate } from "./types";
 
 /** What an element has to be born carrying for its first paint to be right. */
 export interface InitialRender {
@@ -40,6 +40,7 @@ const EMPTY: InitialRender = { style: {}, attrs: {} };
 export function buildInitialRender(
   target: TargetAndTransition | undefined,
   tag: string | undefined,
+  transformTemplate?: TransformTemplate,
 ): InitialRender {
   if (!target) return EMPTY;
 
@@ -58,7 +59,7 @@ export function buildInitialRender(
   if (isSvgTag(tag)) {
     buildSVGAttrs(state, latest, isSVGTag(tag));
   } else {
-    buildHTMLStyles(state, latest);
+    buildHTMLStyles(state, latest, transformTemplate);
   }
 
   // Hyphenated, because this style is handed to a JSX `style` prop rather than

@@ -3,23 +3,37 @@ import {
   createMemo,
   createSignal,
   getOwner,
+  merge,
   onCleanup,
   runWithOwner,
   untrack,
 } from "solid-js";
 
-import { useMotionConfig } from "./config";
+import {
+  attachToControls,
+  isAnimationControls,
+  type ControlledAnimation,
+} from "./animation-controls";
+import { useMotionConfig, useReducedMotionConfig } from "./config";
 import { createMotionController, type MotionPass } from "./controller";
+import { watchDrag } from "./drag";
 import { gestureNames, watchGestures } from "./gestures";
 import { buildInitialRender, toInitialValues } from "./initial";
+import { useLayoutGroupId } from "./layout-group";
 import { noteStyleChange } from "./layout-updates";
 import { readStyleValues, resolveStyle } from "./motion-values";
+import { watchPan, type Point } from "./pan";
 import { usePresence } from "./presence";
 import type { LayoutOptions } from "./projection";
-import { useReducedMotion } from "./reduced-motion";
 import { resolveDefinition, resolveInitialDefinition } from "./resolve";
 import { mergeLayers, withoutMovement } from "./target";
-import type { MotionOptions, TargetAndTransition } from "./types";
+import type {
+  MotionOptions,
+  ResolvedMotionOptions,
+  TargetAndTransition,
+  Transition,
+} from "./types";
+import type { TemplateSource } from "./values";
 import {
   createVariantScope,
   sequencePass,
@@ -75,7 +89,7 @@ export interface MotionHandle {
  * `opacity` in a rebuilt target is not an animation to restart.
  */
 export function createMotion<TCustom = unknown>(
-  options: () => MotionOptions<TCustom>,
+  requested: () => MotionOptions<TCustom>,
   /**
    * The tag being rendered, when the caller knows it. It only decides whether
    * the initial target is painted as style or as attributes; everything after
@@ -83,21 +97,48 @@ export function createMotion<TCustom = unknown>(
    */
   tag?: string,
 ): MotionHandle {
-  const prefersReducedMotion = useReducedMotion();
+  const reducedMotionActive = useReducedMotionConfig();
   const config = useMotionConfig();
   const presence = usePresence();
+  const layoutGroup = useLayoutGroupId();
 
   // Captured before `ref` fires: a ref callback runs outside any reactive
   // owner, so `onCleanup` called from inside it is silently never scheduled.
   // Registering a child's cleanup needs this owner handed back in explicitly.
   const owner = getOwner();
 
+  // What `animate={controls}` was last told to do. Everything below reads the
+  // options through `options`, where the controls have already been replaced by
+  // that definition, so a controlled element is an ordinary element whose
+  // `animate` happens to be written by a method call instead of a signal.
+  const [controlled, setControlled] = createSignal<ControlledAnimation>();
+  const options = (): ResolvedMotionOptions<TCustom> => {
+    const current = requested();
+    // An empty list rather than `undefined`: a controlled element offers
+    // variant labels to its children from the first frame, before any call.
+    // `merge`, not a spread: the options are the component's props, and
+    // spreading them would read every getter, `children` included.
+    return (
+      isAnimationControls(current.animate)
+        ? merge(current, { animate: controlled()?.definition ?? [] })
+        : current
+    ) as ResolvedMotionOptions<TCustom>;
+  };
+
   // The gestures need the node inside a tracking scope, so it lives in a signal
   // rather than a plain `let` the effects could never observe.
   const [element, setElement] = createSignal<HTMLElement | SVGElement>();
-  const gestures = watchGestures(options, element);
+  const { states: gestures, setDragging } = watchGestures(options, element);
+  // Read on every event, so a `MotionConfig` that changes it is followed.
+  const transformPagePoint = (point: Point) =>
+    config.transformPagePoint ? config.transformPagePoint(point) : point;
+  watchPan(options, element, transformPagePoint);
 
-  const inherited = useVariants();
+  const parentVariants = useVariants();
+  // Read once: whether an element joins its parent's variant tree is part of
+  // how it is built, like `initial`.
+  const inherited =
+    untrack(() => requested().inherit) === false ? null : parentVariants;
   // Only this element's own `custom` is typed. An ancestor's variant scope or a
   // presence boundary knows nothing about this element's variant map, so what
   // they carry is `unknown` and this is where it gets read as the local type.
@@ -114,8 +155,15 @@ export function createMotion<TCustom = unknown>(
     return own !== undefined ? own : inherited?.label(layer);
   };
 
-  const resolveLayer = (layer: VariantLayer) =>
-    resolveDefinition(definitionFor(layer), options().variants, custom());
+  const resolveLayer = (layer: VariantLayer) => {
+    const target = resolveDefinition(
+      definitionFor(layer),
+      options().variants,
+      custom(),
+    );
+    const override = layer === "animate" ? controlled()?.transition : undefined;
+    return target && override ? { ...target, transition: override } : target;
+  };
 
   // The initial target is resolved exactly once. It describes the element the
   // browser is handed, so re-resolving it later would describe a paint that
@@ -134,15 +182,57 @@ export function createMotion<TCustom = unknown>(
   // element, and only their values are expected to change afterwards.
   const bound = untrack(() => readStyleValues(options().style));
 
+  // Whether the element has a template decides how it paints, so that is fixed
+  // at mount. Which template it is stays a live read.
+  const template: TemplateSource | undefined = untrack(
+    () => options().transformTemplate,
+  )
+    ? () => {
+        const own = options().transformTemplate;
+        // Motion spells "no transform" as "none", which is no operand for
+        // `${generated} rotate(5deg)`: the whole value would be invalid CSS and
+        // the browser would keep the previous one.
+        return (
+          own &&
+          ((values, generated) =>
+            own(values, generated === "none" ? "" : generated))
+        );
+      }
+    : undefined;
+
   // `layout`/`layoutId` describe the node, so capture them with the initial
   // target; `style` stays a live read, since projection calls it on every
   // paint rather than once at mount.
   const layout = untrack((): LayoutOptions | undefined => {
     const current = options();
-    if (!current.layout && current.layoutId === undefined) return undefined;
+    const projecting =
+      current.layout ||
+      current.layoutId !== undefined ||
+      current.layoutScroll ||
+      current.layoutRoot;
+    if (!projecting) return undefined;
+    const group = layoutGroup();
     return {
       layout: current.layout,
-      layoutId: current.layoutId,
+      layoutId:
+        group && current.layoutId !== undefined
+          ? `${group}-${current.layoutId}`
+          : current.layoutId,
+      scroll: current.layoutScroll,
+      root: current.layoutRoot,
+      anchor: current.layoutAnchor,
+      crossfade: current.layoutCrossfade,
+      dependency: () => options().layoutDependency,
+      callbacks: () => {
+        const latest = options();
+        return {
+          onBeforeLayoutMeasure: latest.onBeforeLayoutMeasure,
+          onLayoutMeasure: latest.onLayoutMeasure,
+          onLayoutAnimationStart: latest.onLayoutAnimationStart,
+          onLayoutAnimationComplete: latest.onLayoutAnimationComplete,
+        };
+      },
+      template,
       style: () => resolveStyle(options().style),
     };
   });
@@ -176,8 +266,72 @@ export function createMotion<TCustom = unknown>(
     toInitialValues(initialTarget),
     bound.values,
     layout,
+    template,
   );
   onCleanup(controller.dispose);
+
+  // The dependency is the caller's word that layout changed. Deferred because
+  // mounting takes the first measurement itself.
+  createEffect(
+    () => options().layoutDependency,
+    () => controller.store?.projection?.invalidate(),
+    { defer: true },
+  );
+
+  // `controls.start()` promises, resolved as the pass that answers them
+  // settles, or as a later one takes over.
+  let epoch = 0;
+  let waiting: Array<{ epoch: number; resolve: VoidFunction }> = [];
+  const answerControls = (through: number) => {
+    const answered = waiting.filter((call) => call.epoch <= through);
+    waiting = waiting.filter((call) => call.epoch > through);
+    for (const call of answered) call.resolve();
+  };
+  onCleanup(() => answerControls(Infinity));
+
+  const request = (
+    definition: ControlledAnimation["definition"],
+    transition?: Transition,
+  ) => {
+    epoch += 1;
+    setControlled({ definition, transition, epoch });
+    return epoch;
+  };
+
+  createEffect(
+    () => {
+      const animate = requested().animate;
+      return isAnimationControls(animate) ? animate : undefined;
+    },
+    (controls) =>
+      controls &&
+      attachToControls(controls, {
+        start: (definition, transition) =>
+          new Promise<void>((resolve) => {
+            waiting.push({ epoch: request(definition, transition), resolve });
+          }),
+        set: (definition) => {
+          request(definition);
+          controller.set(
+            toInitialValues(
+              resolveDefinition(
+                definition,
+                untrack(options).variants,
+                untrack(custom),
+              ),
+            ),
+          );
+        },
+        stop: () => controller.stop(),
+      }),
+  );
+
+  watchDrag(options, element, {
+    store: () => controller.store,
+    isPresent: () => (presence ? presence.isPresent() : true),
+    setDragging,
+    transformPagePoint,
+  });
 
   const fallbackTransition = createMemo(
     () => options().transition ?? config.transition,
@@ -207,9 +361,7 @@ export function createMotion<TCustom = unknown>(
   createEffect(
     () => {
       const present = presence ? presence.isPresent() : true;
-      const reducedMotion =
-        config.reducedMotion === "always" ||
-        (config.reducedMotion === "user" && prefersReducedMotion());
+      const reducedMotion = reducedMotionActive();
 
       const target = merged();
       const node = element();
@@ -236,6 +388,8 @@ export function createMotion<TCustom = unknown>(
         onAnimationStart: current.onAnimationStart,
         onAnimationComplete: current.onAnimationComplete,
         onUpdate: current.onUpdate,
+        // Which `controls.start()` calls this pass answers.
+        epoch: controlled()?.epoch ?? 0,
       };
     },
     (next) => {
@@ -254,7 +408,10 @@ export function createMotion<TCustom = unknown>(
 
       if (next.present) {
         // Superseding an exit pass releases its presence hold.
-        controller.run(pass, () => next.sequence?.settled());
+        controller.run(pass, () => {
+          next.sequence?.settled();
+          answerControls(next.epoch);
+        });
         return;
       }
 
@@ -264,6 +421,7 @@ export function createMotion<TCustom = unknown>(
       controller.run(pass, () => {
         release?.();
         next.sequence?.settled();
+        answerControls(next.epoch);
       });
     },
   );
@@ -272,6 +430,7 @@ export function createMotion<TCustom = unknown>(
   const painted = buildInitialRender(
     paintTarget(bound.painted, initialTarget),
     tag,
+    untrack(() => template?.()),
   );
 
   return {

@@ -11,6 +11,7 @@ import {
   claim,
   releaseValueStore,
   sharedValueStore,
+  type TemplateSource,
   type ValueStore,
 } from "./values";
 
@@ -48,11 +49,17 @@ export interface MotionPass {
 
 export interface MotionController {
   mount(element: HTMLElement | SVGElement): void;
+  /** The element's values, once it has mounted. */
+  readonly store: ValueStore | undefined;
   /**
    * Runs a pass. `onSettled` is called exactly once: with `true` when the pass
    * reached its target, with `false` when a later pass or disposal took over.
    */
   run(pass: MotionPass, onSettled?: (completed: boolean) => void): void;
+  /** Writes values straight to the element without animating. */
+  set(values: Record<string, string | number>): void;
+  /** Halts every animation, leaving each value where it has reached. */
+  stop(): void;
   dispose(): void;
 }
 
@@ -70,6 +77,8 @@ export function createMotionController(
   bound: ReadonlyMap<string, MotionValue>,
   /** Present when the element asked for `layout` or `layoutId`. */
   layout?: LayoutOptions,
+  /** Present when the element asked for a `transformTemplate`. */
+  template?: TemplateSource,
 ): MotionController {
   let store: ValueStore | undefined;
   let mountedElement: HTMLElement | SVGElement | undefined;
@@ -245,9 +254,13 @@ export function createMotionController(
   };
 
   return {
+    get store() {
+      return store;
+    },
+
     mount(element) {
       mountedElement = element;
-      store = sharedValueStore(element, initialValues, bound, layout);
+      store = sharedValueStore(element, initialValues, bound, layout, template);
       if (!queued) return;
 
       const { pass, onSettled } = queued;
@@ -264,6 +277,26 @@ export function createMotionController(
         return;
       }
       start(pass, onSettled);
+    },
+
+    set(values) {
+      supersede();
+      for (const [key, value] of Object.entries(values)) {
+        store?.set(key, value);
+        applied.set(key, value);
+      }
+    },
+
+    stop() {
+      supersede();
+      if (!store) return;
+      // What the next pass is compared against has to be where the element
+      // actually stopped, or a pass back to the old target would see no change.
+      for (const key of applied.keys()) {
+        const value = store.value(key);
+        value.stop();
+        applied.set(key, value.get());
+      }
     },
 
     dispose() {
