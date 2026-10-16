@@ -5,8 +5,8 @@
 `onClick` and `children`, go to the element.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function Panel() {
   const [wide, setWide] = createSignal(false);

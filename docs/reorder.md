@@ -5,8 +5,8 @@ The group owns no state. It calls `onReorder` with the new order, and you store
 it.
 
 ```tsx
-import { createSignal, For } from "solid-js";
 import { Reorder } from "@totallynotdavid/solid-motion";
+import { createSignal, For } from "solid-js";
 
 function Todo() {
   const [items, setItems] = createSignal(["Write", "Test", "Ship"]);

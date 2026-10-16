@@ -4,8 +4,8 @@
 you render yourself.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { createMotion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function CollapsibleRow() {
   const [open, setOpen] = createSignal(false);

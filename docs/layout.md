@@ -5,8 +5,8 @@ resizes it. You change the DOM or the CSS. The element measures itself before
 and after, and animates the difference.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function Switch() {
   const [on, setOn] = createSignal(false);
@@ -78,8 +78,8 @@ Give two elements the same `layoutId`. When one replaces the other, the new
 element animates from the box the old one had, and the two crossfade.
 
 ```tsx
-import { createSignal, For } from "solid-js";
 import { motion } from "@totallynotdavid/solid-motion";
+import { createSignal, For } from "solid-js";
 
 const tabs = ["Home", "Docs", "Blog"];
 

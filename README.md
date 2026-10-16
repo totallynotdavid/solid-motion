@@ -38,8 +38,8 @@ in `tsconfig.json`.
 
 ```tsx
 import { render } from "@solidjs/web";
-import { createSignal } from "solid-js";
 import { motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function App() {
   const [open, setOpen] = createSignal(true);

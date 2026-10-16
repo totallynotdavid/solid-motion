@@ -54,8 +54,8 @@ server there is nothing to measure and the values stay at 0.
 runs. Until they return an element, nothing is measured.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { createScroll, motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function Panel() {
   const [box, setBox] = createSignal<HTMLElement>();

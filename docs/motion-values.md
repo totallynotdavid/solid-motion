@@ -4,8 +4,8 @@ A motion value holds one number or string and writes it to the element on the
 animation frame. Nothing re-renders when it changes.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { createMotionValue, motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function Ball() {
   const [targetX, setTargetX] = createSignal(0);
@@ -102,8 +102,8 @@ For a value derived from signals only, an accessor is enough. The pure function
 re-exported from `motion-dom`.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { motion, transform } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 const [position, setPosition] = createSignal(100);
 const fade = transform([0, 200], [0, 1]);

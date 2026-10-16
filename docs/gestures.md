@@ -129,8 +129,8 @@ observer and no animation. Use it for a lazy mount, an infinite-scroll sentinel,
 or an impression count.
 
 ```tsx
-import { createSignal } from "solid-js";
 import { createInView } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function LazySection() {
   const [node, setNode] = createSignal<HTMLElement>();

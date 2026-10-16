@@ -9,8 +9,8 @@ There are two boundaries. `AnimatePresence` shows one subtree at a time.
 ## AnimatePresence
 
 ```tsx
-import { createSignal } from "solid-js";
 import { AnimatePresence, motion } from "@totallynotdavid/solid-motion";
+import { createSignal } from "solid-js";
 
 function Modal() {
   const [open, setOpen] = createSignal(false);
@@ -185,8 +185,8 @@ object has:
 This component keeps its boundary open for 500 ms after it starts to leave:
 
 ```tsx
-import { createEffect } from "solid-js";
 import { usePresence } from "@totallynotdavid/solid-motion";
+import { createEffect } from "solid-js";
 
 function Toast() {
   const presence = usePresence();
