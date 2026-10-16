@@ -109,6 +109,83 @@ exiting while the new one enters.
 
 `layoutId` alone turns layout animation on. You do not need `layout` as well.
 
+By default the two elements crossfade. `layoutCrossfade={false}` on an element
+stops it fading and leaves it at its own opacity.
+
+## LayoutGroup
+
+Two copies of a component that use the same `layoutId` would animate between
+each other. `LayoutGroup` prefixes the `layoutId` of everything inside it, so
+each copy keeps its own.
+
+```tsx
+import { LayoutGroup, motion } from "@totallynotdavid/solid-motion";
+
+function TabBar(props: { id: string }) {
+  return (
+    <LayoutGroup id={props.id}>
+      <nav>
+        <motion.div layoutId="underline" />
+      </nav>
+    </LayoutGroup>
+  );
+}
+```
+
+| Prop      | Meaning                                                                |
+| --------- | ---------------------------------------------------------------------- |
+| `id`      | The prefix, added as `id-layoutId`.                                    |
+| `inherit` | `false` starts a namespace of its own instead of nesting inside above. |
+
+Groups inside groups join their ids, so `a` inside `b` gives `b-a-layoutId`.
+
+## Other layout props
+
+| Prop                                                  | Meaning                                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layoutDependency`                                    | Re-measure the element when this value changes. See below.                                                                                                                      |
+| `layoutScroll`                                        | The element scrolls. Its children are measured inside its scroll.                                                                                                               |
+| `layoutRoot`                                          | The element is fixed in place. Ancestors animating do not move it.                                                                                                              |
+| `layoutAnchor`                                        | The point on the parent a child is placed against, as `{ x, y }` from 0 to 1. Default top left. `{ x: 0.5, y: 0.5 }` keeps a centred child from drifting. `false` turns it off. |
+| `onBeforeLayoutMeasure`                               | Called before each measurement.                                                                                                                                                 |
+| `onLayoutMeasure`                                     | Called with each new box and the one before it.                                                                                                                                 |
+| `onLayoutAnimationStart`, `onLayoutAnimationComplete` | Called when the move begins and when it lands.                                                                                                                                  |
+
+`layout`, `layoutId`, `layoutScroll`, `layoutRoot`, `layoutAnchor` and
+`layoutCrossfade` are read once, when the element is created. The callbacks and
+`layoutDependency` follow changes.
+
+An element normally re-measures after any DOM change near it. Once you set
+`layoutDependency`, it re-measures only when that value changes. Use it for a
+list with many layout elements, or for a layout change that no DOM change
+announces:
+
+```tsx
+<motion.div
+  layout
+  layoutDependency={open()}
+  class={open() ? "wide" : "narrow"}
+/>
+```
+
+Put `layoutScroll` on a scrolling container. Without it, scrolling is read as
+the children moving, and they animate.
+
+## Instant changes
+
+`instantLayoutTransition(update)` runs `update` and applies the layout changes
+it makes at once, without animating them. The next change animates as usual.
+
+`resetLayout()` forgets every measurement, so the next layout is a fresh
+baseline and not the end of an animation. Call it when the DOM is replaced
+wholesale, such as on a page change.
+
+```tsx
+import { instantLayoutTransition } from "@totallynotdavid/solid-motion";
+
+instantLayoutTransition(() => setSorted(true));
+```
+
 ## Reduced motion
 
 Under `reducedMotion` and `skipAnimations` (see
