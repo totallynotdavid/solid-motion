@@ -51,7 +51,8 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
   createEffect(
     () => props.each,
     (items) => {
-      setEntries((current) => diffEntries(current, items, props.getKey));
+      const getKey = untrack(() => props.getKey);
+      setEntries((current) => diffEntries(current, items, getKey));
     },
   );
 
@@ -71,7 +72,9 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
       return current.filter((entry) => entry.key !== key);
     });
 
-    if (!entries().some((entry) => !entry.present)) props.onExitComplete?.();
+    if (!untrack(entries).some((entry) => !entry.present)) {
+      props.onExitComplete?.();
+    }
   };
 
   return (
@@ -81,7 +84,7 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
           isPresent={entry().present}
           initial={props.initial}
           custom={props.custom}
-          onExitComplete={() => completeExit(entry().key)}
+          onExitComplete={() => completeExit(untrack(entry).key)}
         >
           {props.children(() => entry().item)}
         </PresenceChild>

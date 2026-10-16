@@ -47,7 +47,7 @@ export function PresenceChild(props: PresenceChildProps) {
   const leaveIfDone = () => {
     if (holds !== 0) return;
     // The item can come back inside the same flush that its exit started in.
-    if (props.isPresent) return;
+    if (untrack(() => props.isPresent)) return;
     props.onExitComplete();
   };
 
