@@ -12,6 +12,9 @@ import type { MotionStyle, MotionStyleValue, Transition } from "./types";
 
 export type MotionSource<T> = T | (() => T) | MotionValue<T>;
 
+/** A literal `0` is a `number` value, not a value that can only be `0`. */
+type Widen<T extends string | number> = T extends number ? number : string;
+
 /**
  * Creates a MotionValue from a literal, Solid accessor, or MotionValue.
  *
@@ -25,6 +28,10 @@ export type MotionSource<T> = T | (() => T) | MotionValue<T>;
  * component unmounting destroys the value and tears down its subscriptions
  * with it.
  */
+export function createMotionValue<T extends string | number>(
+  source: MotionSource<T>,
+  transition?: Transition,
+): MotionValue<Widen<T>>;
 export function createMotionValue<T extends string | number>(
   source: MotionSource<T>,
   transition?: Transition,
