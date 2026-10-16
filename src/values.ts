@@ -142,7 +142,7 @@ export function claim(
   byKey.set(key, onSuperseded);
 }
 
-export function createValueStore(
+function createValueStore(
   element: HTMLElement | SVGElement,
   /** Initial values rendered on the element. */
   initialValues: Record<string, string | number>,

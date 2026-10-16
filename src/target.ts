@@ -12,7 +12,7 @@ export interface MotionLayer {
   active: boolean;
 }
 
-export interface TargetEntry {
+interface TargetEntry {
   /** A single value, or the keyframe list to run through. */
   value: ValueKeyframesDefinition;
   /**

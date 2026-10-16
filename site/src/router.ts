@@ -13,7 +13,7 @@ function scrollToHash(hash: string): void {
   else window.scrollTo(0, 0);
 }
 
-export function navigate(to: string): void {
+function navigate(to: string): void {
   const url = new URL(to, window.location.href);
   window.history.pushState(null, "", url);
   setLocation({ path: url.pathname, hash: url.hash });

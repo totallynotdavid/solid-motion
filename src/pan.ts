@@ -4,7 +4,6 @@ import {
   frame,
   isPrimaryPointer,
   time,
-  type EventInfo,
   type PanInfo,
 } from "motion-dom";
 import { createEffect, createMemo, untrack, type Accessor } from "solid-js";
@@ -272,8 +271,6 @@ export function startPanSession(
 
   return { end };
 }
-
-export type { EventInfo };
 
 /**
  * Wires the `onPan*` callbacks to an element. A session starts on every primary

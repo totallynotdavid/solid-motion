@@ -43,7 +43,7 @@ export interface LayoutAnchor {
 }
 
 /** Layout events the element may listen to, read when each one fires. */
-export interface LayoutCallbacks {
+interface LayoutCallbacks {
   onBeforeLayoutMeasure?: () => void;
   onLayoutMeasure?: (box: LayoutBox, previous: LayoutBox | undefined) => void;
   onLayoutAnimationStart?: () => void;
@@ -88,7 +88,7 @@ export interface LayoutTiming {
 }
 
 /** What changed about an element's layout in one update. */
-export interface LayoutShift {
+interface LayoutShift {
   /** How far the element's own box moved, per axis, in px. */
   delta: { x: number; y: number };
   changed: boolean;

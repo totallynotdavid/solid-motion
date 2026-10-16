@@ -20,7 +20,7 @@ function escapeHtml(text: string): string {
     .replaceAll(">", "&gt;");
 }
 
-export async function copyText(text: string): Promise<void> {
+async function copyText(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 

@@ -48,7 +48,7 @@ export function literal(value: unknown, indent = 0, width = 64): string {
 }
 
 /** One JSX attribute: `x="a"`, `x={1}`, `x={{ a: 1 }}`, or `x` for `true`. */
-export function attribute(name: string, value: unknown, indent = 0): string {
+function attribute(name: string, value: unknown, indent = 0): string {
   if (value === true) return name;
   if (typeof value === "string") return `${name}="${value}"`;
   return `${name}={${literal(value, indent)}}`;
@@ -76,15 +76,6 @@ export function openTag(
   const pad = "  ".repeat(indent + 1);
   const close = "  ".repeat(indent);
   return `<${tag}\n${attrs.map((attr) => `${pad}${attr}`).join("\n")}\n${close}${selfClose ? "/>" : ">"}`;
-}
-
-/** Indents every line after the first, for nesting one snippet in another. */
-export function indentBlock(text: string, levels: number): string {
-  const pad = "  ".repeat(levels);
-  return text
-    .split("\n")
-    .map((line, index) => (index === 0 || line === "" ? line : pad + line))
-    .join("\n");
 }
 
 export type Library = "solid" | "react";

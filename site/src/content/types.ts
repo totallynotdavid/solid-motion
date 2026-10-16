@@ -4,7 +4,7 @@ export interface PageEntry {
   title: string;
 }
 
-export interface DocSection {
+interface DocSection {
   id: string;
   title: string;
   html: string;
