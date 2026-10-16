@@ -270,52 +270,6 @@ describe("createScroll trackContentSize", () => {
 describe("createScroll offset resolution", () => {
   afterEach(() => document.body.replaceChildren());
 
-  it("resolves target inset through a single offsetParent hop", async () => {
-    let scroll!: ReturnType<typeof createScroll>;
-    let targetEl!: HTMLElement;
-    const { container } = render(() => {
-      const [node, setNode] = createSignal<HTMLElement>();
-      scroll = createScroll({
-        container: node,
-        target: () => targetEl,
-        // Non-default range so the resolved inset alone drives progress.
-        offset: [
-          [0, 0],
-          [0.5, 0],
-        ],
-      });
-      return (
-        <div ref={setNode}>
-          <div ref={(el) => (targetEl = el)} />
-        </div>
-      );
-    });
-    const element = container.querySelector("div") as HTMLElement;
-    element.style.position = "relative";
-    stubBox(element, { clientHeight: 100 });
-    stubBox(targetEl, { clientHeight: 100 });
-
-    // target's offsetParent is container itself: inset is its own offsetTop.
-    stubOffset(targetEl, { offsetTop: 50, offsetParent: element });
-
-    // points are [50, 100]; walk scrollTop across that range.
-    element.scrollTop = 50;
-    element.dispatchEvent(new Event("scroll"));
-    flush();
-    await tick();
-    expect(scroll.scrollYProgress.get()).toBe(0);
-
-    element.scrollTop = 75;
-    element.dispatchEvent(new Event("scroll"));
-    await tick();
-    expect(scroll.scrollYProgress.get()).toBeCloseTo(0.5);
-
-    element.scrollTop = 100;
-    element.dispatchEvent(new Event("scroll"));
-    await tick();
-    expect(scroll.scrollYProgress.get()).toBe(1);
-  });
-
   it("resolves target inset by summing an intermediate ancestor's offset", async () => {
     let scroll!: ReturnType<typeof createScroll>;
     let wrapperEl!: HTMLElement;

@@ -134,20 +134,62 @@ describe("Reorder", () => {
     expect(order(container)).toEqual(["b", "a", "c"]);
   });
 
-  it("reorders upwards", async () => {
-    layOut(column);
-    const onReorder = vi.fn<(...args: unknown[]) => void>();
-    const { container } = render(() => (
-      <List initial={["a", "b", "c"]} onReorder={onReorder} />
-    ));
-    await advance(50);
+  it.each([
+    {
+      name: "reorders upwards",
+      slot: column,
+      initial: ["a", "b", "c"],
+      dragged: "c",
+      from: [10, 210] as [number, number],
+      to: [10, 130] as [number, number],
+      groupProps: undefined,
+      expected: ["a", "c", "b"],
+    },
+    {
+      name: "moves between rows of a wrapping list",
+      slot: grid,
+      initial: ["a", "b", "c", "d"],
+      dragged: "b",
+      from: [110, 10] as [number, number],
+      to: [20, 110] as [number, number],
+      groupProps: undefined,
+      expected: ["a", "c", "b", "d"],
+    },
+    {
+      name: "swaps within a row of a wrapping list",
+      slot: grid,
+      initial: ["a", "b", "c", "d"],
+      dragged: "a",
+      from: [10, 10] as [number, number],
+      to: [110, 10] as [number, number],
+      groupProps: undefined,
+      expected: ["b", "a", "c", "d"],
+    },
+    {
+      name: "places an item in a new row from the right when the text runs right to left",
+      slot: grid,
+      initial: ["a", "b", "c", "d"],
+      dragged: "a",
+      from: [10, 10] as [number, number],
+      to: [170, 110] as [number, number],
+      groupProps: { style: { direction: "rtl" } },
+      expected: ["b", "a", "c", "d"],
+    },
+  ])(
+    "$name",
+    async ({ slot, initial, dragged, from, to, groupProps, expected }) => {
+      layOut(slot);
+      const onReorder = vi.fn<(...args: unknown[]) => void>();
+      const { container } = render(() => (
+        <List initial={initial} onReorder={onReorder} groupProps={groupProps} />
+      ));
+      await advance(50);
 
-    await dragTo(item(container, "c"), [10, 210], [10, 130], {
-      release: false,
-    });
+      await dragTo(item(container, dragged), from, to, { release: false });
 
-    expect(onReorder).toHaveBeenCalledWith(["a", "c", "b"]);
-  });
+      expect(onReorder).toHaveBeenCalledWith(expected);
+    },
+  );
 
   it("waits until the item is past the middle of its neighbour", async () => {
     layOut(column);
@@ -229,34 +271,6 @@ describe("Reorder", () => {
 
     expect(onReorder).not.toHaveBeenCalled();
     expect(translation(item(container, "a")).y).toBe(0);
-  });
-
-  it("moves between rows of a wrapping list", async () => {
-    layOut(grid);
-    const onReorder = vi.fn<(...args: unknown[]) => void>();
-    const { container } = render(() => (
-      <List initial={["a", "b", "c", "d"]} onReorder={onReorder} />
-    ));
-    await advance(50);
-
-    await dragTo(item(container, "b"), [110, 10], [20, 110], {
-      release: false,
-    });
-
-    expect(onReorder).toHaveBeenCalledWith(["a", "c", "b", "d"]);
-  });
-
-  it("swaps within a row of a wrapping list", async () => {
-    layOut(grid);
-    const onReorder = vi.fn<(...args: unknown[]) => void>();
-    const { container } = render(() => (
-      <List initial={["a", "b", "c", "d"]} onReorder={onReorder} />
-    ));
-    await advance(50);
-
-    await dragTo(item(container, "a"), [10, 10], [110, 10], { release: false });
-
-    expect(onReorder).toHaveBeenCalledWith(["b", "a", "c", "d"]);
   });
 
   it("does not report again until the new order has rendered", async () => {
@@ -343,7 +357,26 @@ describe("Reorder", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("scrolls the container when an item is dragged to its edge", async () => {
+  it.each([
+    {
+      name: "scrolls the container when an item is dragged to its edge",
+      from: [10, 100] as [number, number],
+      to: [10, 290] as [number, number],
+      scrolls: true,
+    },
+    {
+      name: "does not scroll while the pointer is away from the edges",
+      from: [10, 100] as [number, number],
+      to: [10, 160] as [number, number],
+      scrolls: false,
+    },
+    {
+      name: "does not scroll when the pointer is at an edge but moving away from it",
+      from: [10, 290] as [number, number],
+      to: [10, 270] as [number, number],
+      scrolls: false,
+    },
+  ])("$name", async ({ from, to, scrolls }) => {
     layOut(column);
     const { container } = render(() => (
       <div class="scroller" style={{ "overflow-y": "auto" }}>
@@ -358,75 +391,9 @@ describe("Reorder", () => {
     Object.defineProperty(scroller, "clientHeight", { value: 300 });
     await advance(50);
 
-    // The pointer ends 10px from the bottom edge, moving towards it.
-    await dragTo(item(container, "a"), [10, 100], [10, 290], {
-      release: false,
-    });
+    await dragTo(item(container, "a"), from, to, { release: false });
 
-    expect(scroller.scrollTop).toBeGreaterThan(0);
-  });
-
-  it("does not scroll while the pointer is away from the edges", async () => {
-    layOut(column);
-    const { container } = render(() => (
-      <div class="scroller" style={{ "overflow-y": "auto" }}>
-        <List initial={["a", "b", "c", "d", "e"]} />
-      </div>
-    ));
-    const scroller = container.querySelector(".scroller") as HTMLElement;
-    vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue(
-      DOMRect.fromRect({ x: 0, y: 0, width: 200, height: 300 }),
-    );
-    Object.defineProperty(scroller, "scrollHeight", { value: 600 });
-    Object.defineProperty(scroller, "clientHeight", { value: 300 });
-    await advance(50);
-
-    await dragTo(item(container, "a"), [10, 100], [10, 160], {
-      release: false,
-    });
-
-    expect(scroller.scrollTop).toBe(0);
-  });
-
-  it("does not scroll when the pointer is at an edge but moving away from it", async () => {
-    layOut(column);
-    const { container } = render(() => (
-      <div class="scroller" style={{ "overflow-y": "auto" }}>
-        <List initial={["a", "b", "c", "d", "e"]} />
-      </div>
-    ));
-    const scroller = container.querySelector(".scroller") as HTMLElement;
-    vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue(
-      DOMRect.fromRect({ x: 0, y: 0, width: 200, height: 300 }),
-    );
-    Object.defineProperty(scroller, "scrollHeight", { value: 600 });
-    Object.defineProperty(scroller, "clientHeight", { value: 300 });
-    await advance(50);
-
-    await dragTo(item(container, "a"), [10, 290], [10, 270], {
-      release: false,
-    });
-
-    expect(scroller.scrollTop).toBe(0);
-  });
-
-  it("places an item in a new row from the right when the text runs right to left", async () => {
-    layOut(grid);
-    const onReorder = vi.fn<(...args: unknown[]) => void>();
-    const { container } = render(() => (
-      <List
-        initial={["a", "b", "c", "d"]}
-        onReorder={onReorder}
-        groupProps={{ style: { direction: "rtl" } }}
-      />
-    ));
-    await advance(50);
-
-    await dragTo(item(container, "a"), [10, 10], [170, 110], {
-      release: false,
-    });
-
-    expect(onReorder).toHaveBeenCalledWith(["b", "a", "c", "d"]);
+    expect(scroller.scrollTop > 0).toBe(scrolls);
   });
 
   it("cannot render an item outside a group", () => {

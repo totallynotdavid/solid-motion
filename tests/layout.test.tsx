@@ -367,98 +367,90 @@ describe("layout", () => {
     expect(element.style.transform).toContain("rotate(45deg)");
   });
 
-  it(`still animates a layout change when the caller's style has transform: "none"`, async () => {
-    const [wide, setWide] = createSignal(false);
+  // A caller transform of "none" composed onto the generated transform is
+  // invalid CSS, which the browser drops whole.
+  it.each(["none", "  NONE  "])(
+    "still animates a layout change when the caller's style has transform: %j",
+    async (callerTransform) => {
+      const [wide, setWide] = createSignal(false);
 
-    const { container } = render(() => (
-      <div class={wide() ? "row wide" : "row"}>
+      const { container } = render(() => (
+        <div class={wide() ? "row wide" : "row"}>
+          <motion.div
+            class="box"
+            layout
+            transition={{ duration: 0.4 }}
+            style={{ transform: callerTransform }}
+          />
+        </div>
+      ));
+
+      const element = container.querySelector(".box") as HTMLElement;
+      const collapsed = { left: 0, top: 0, width: 100, height: 100 };
+      const expanded = { left: 200, top: 0, width: 300, height: 100 };
+      stubBox(element, () => (wide() ? expanded : collapsed));
+
+      await advance(50);
+
+      setWide(true);
+      flush();
+
+      const boxes = await sample(element, 250);
+      const midpoints = boxes.filter(
+        (box) =>
+          between(box.left, collapsed.left, expanded.left) &&
+          between(box.width, collapsed.width, expanded.width),
+      );
+      expect(midpoints.length).toBeGreaterThan(3);
+
+      await settle();
+      expect(projectedBox(element)).toEqual(expanded);
+    },
+  );
+
+  it.each([
+    {
+      name: "a motion ancestor's reactive style",
+      ancestor: (wide: () => boolean) => (
         <motion.div
-          class="box"
-          layout
-          transition={{ duration: 0.4 }}
-          style={{ transform: "none" }}
-        />
-      </div>
-    ));
-
-    const element = container.querySelector(".box") as HTMLElement;
-    const collapsed = { left: 0, top: 0, width: 100, height: 100 };
-    const expanded = { left: 200, top: 0, width: 300, height: 100 };
-    stubBox(element, () => (wide() ? expanded : collapsed));
-
-    await advance(50);
-
-    setWide(true);
-    flush();
-
-    // Composing "none" onto the generated transform produces
-    // "translate3d(...) scale(...) none", which is invalid CSS; the browser
-    // drops the whole declaration, so the element would sit at its final
-    // layout box for the entire flight instead of animating into it.
-    const boxes = await sample(element, 250);
-    const midpoints = boxes.filter(
-      (box) =>
-        between(box.left, collapsed.left, expanded.left) &&
-        between(box.width, collapsed.width, expanded.width),
-    );
-    expect(midpoints.length).toBeGreaterThan(3);
-
-    await settle();
-    expect(projectedBox(element)).toEqual(expanded);
-  });
-
-  it(`still animates a layout change when the caller's style has transform: "  NONE  "`, async () => {
-    const [wide, setWide] = createSignal(false);
-
-    const { container } = render(() => (
-      <div class={wide() ? "row wide" : "row"}>
+          class="row"
+          style={{ "padding-left": wide() ? "200px" : "0px" }}
+        >
+          <motion.div class="box" layout transition={{ duration: 0.4 }} />
+        </motion.div>
+      ),
+    },
+    {
+      name: "a motion ancestor's accessor-wrapped style value",
+      ancestor: (wide: () => boolean) => (
         <motion.div
-          class="box"
-          layout
-          transition={{ duration: 0.4 }}
-          style={{ transform: "  NONE  " }}
-        />
-      </div>
-    ));
-
-    const element = container.querySelector(".box") as HTMLElement;
-    const collapsed = { left: 0, top: 0, width: 100, height: 100 };
-    const expanded = { left: 200, top: 0, width: 300, height: 100 };
-    stubBox(element, () => (wide() ? expanded : collapsed));
-
-    await advance(50);
-
-    setWide(true);
-    flush();
-
-    // Same failure mode as the exact-lowercase "none" case above, but this
-    // exercises the trim/toLowerCase normalization itself: a caller style of
-    // mixed case with surrounding whitespace must still be recognized as
-    // "none", or it gets composed onto the generated transform and produces
-    // invalid CSS that the browser drops.
-    const boxes = await sample(element, 250);
-    const midpoints = boxes.filter(
-      (box) =>
-        between(box.left, collapsed.left, expanded.left) &&
-        between(box.width, collapsed.width, expanded.width),
-    );
-    expect(midpoints.length).toBeGreaterThan(3);
-
-    await settle();
-    expect(projectedBox(element)).toEqual(expanded);
-  });
-
-  it("animates a layout change a motion ancestor drove with its own reactive style", async () => {
+          class="row"
+          style={{ "padding-left": () => (wide() ? "200px" : "0px") }}
+        >
+          <motion.div class="box" layout transition={{ duration: 0.4 }} />
+        </motion.div>
+      ),
+    },
+    {
+      name: "an ancestor's inline style",
+      ancestor: (wide: () => boolean) => (
+        <div class="row" style={{ "padding-left": wide() ? "200px" : "0px" }}>
+          <motion.div class="box" layout transition={{ duration: 0.4 }} />
+        </div>
+      ),
+    },
+    {
+      name: "an ancestor's data attribute",
+      ancestor: (wide: () => boolean) => (
+        <div class="row" data-size={wide() ? "wide" : "narrow"}>
+          <motion.div class="box" layout transition={{ duration: 0.4 }} />
+        </div>
+      ),
+    },
+  ])("animates a layout change driven by $name", async ({ ancestor }) => {
     const [wide, setWide] = createSignal(false);
 
-    const { container } = render(() => (
-      <motion.div
-        class="row"
-        style={{ "padding-left": wide() ? "200px" : "0px" }}
-      >
-        <motion.div class="box" layout transition={{ duration: 0.4 }} />
-      </motion.div>
-    ));
+    const { container } = render(() => ancestor(wide));
 
     const element = container.querySelector(".box") as HTMLElement;
     const collapsed = { left: 0, top: 0, width: 100, height: 100 };
@@ -470,44 +462,6 @@ describe("layout", () => {
     setWide(true);
     flush();
 
-    // The ancestor's own value store claims its inline style; that claim must
-    // not swallow this reactive change the way it swallows its own paint.
-    const boxes = await sample(element, 250);
-    const midpoints = boxes.filter((box) =>
-      between(box.left, collapsed.left, expanded.left),
-    );
-    expect(midpoints.length).toBeGreaterThan(3);
-
-    await settle();
-    expect(projectedBox(element)).toEqual(expanded);
-  });
-
-  it("animates a layout change a motion ancestor drove with an accessor-wrapped style value", async () => {
-    const [wide, setWide] = createSignal(false);
-
-    const { container } = render(() => (
-      <motion.div
-        class="row"
-        style={{ "padding-left": () => (wide() ? "200px" : "0px") }}
-      >
-        <motion.div class="box" layout transition={{ duration: 0.4 }} />
-      </motion.div>
-    ));
-
-    const element = container.querySelector(".box") as HTMLElement;
-    const collapsed = { left: 0, top: 0, width: 100, height: 100 };
-    const expanded = { left: 200, top: 0, width: 100, height: 100 };
-    stubBox(element, () => (wide() ? expanded : collapsed));
-
-    await advance(50);
-
-    setWide(true);
-    flush();
-
-    // `plainStyle` only checks each entry's type and never calls it, so an
-    // accessor-wrapped value like this one never gets invoked inside the
-    // change-tracking effect and `wide` never gets subscribed to; only
-    // `resolveStyle`, which calls every entry, catches this form.
     const boxes = await sample(element, 250);
     const midpoints = boxes.filter((box) =>
       between(box.left, collapsed.left, expanded.left),
@@ -545,64 +499,6 @@ describe("layout", () => {
 
     // The element's own five second transition would still be moving here.
     await advance(250);
-    expect(projectedBox(element)).toEqual(expanded);
-  });
-
-  it("animates a layout change an ancestor drove with inline style", async () => {
-    const [wide, setWide] = createSignal(false);
-
-    const { container } = render(() => (
-      <div class="row" style={{ "padding-left": wide() ? "200px" : "0px" }}>
-        <motion.div class="box" layout transition={{ duration: 0.4 }} />
-      </div>
-    ));
-
-    const element = container.querySelector(".box") as HTMLElement;
-    const collapsed = { left: 0, top: 0, width: 100, height: 100 };
-    const expanded = { left: 200, top: 0, width: 100, height: 100 };
-    stubBox(element, () => (wide() ? expanded : collapsed));
-
-    await advance(50);
-
-    setWide(true);
-    flush();
-
-    const boxes = await sample(element, 250);
-    const midpoints = boxes.filter((box) =>
-      between(box.left, collapsed.left, expanded.left),
-    );
-    expect(midpoints.length).toBeGreaterThan(3);
-
-    await settle();
-    expect(projectedBox(element)).toEqual(expanded);
-  });
-
-  it("animates a layout change an ancestor drove with a data attribute", async () => {
-    const [wide, setWide] = createSignal(false);
-
-    const { container } = render(() => (
-      <div class="row" data-size={wide() ? "wide" : "narrow"}>
-        <motion.div class="box" layout transition={{ duration: 0.4 }} />
-      </div>
-    ));
-
-    const element = container.querySelector(".box") as HTMLElement;
-    const collapsed = { left: 0, top: 0, width: 100, height: 100 };
-    const expanded = { left: 200, top: 0, width: 100, height: 100 };
-    stubBox(element, () => (wide() ? expanded : collapsed));
-
-    await advance(50);
-
-    setWide(true);
-    flush();
-
-    const boxes = await sample(element, 250);
-    const midpoints = boxes.filter((box) =>
-      between(box.left, collapsed.left, expanded.left),
-    );
-    expect(midpoints.length).toBeGreaterThan(3);
-
-    await settle();
     expect(projectedBox(element)).toEqual(expanded);
   });
 

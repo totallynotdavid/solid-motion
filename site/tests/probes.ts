@@ -5,7 +5,7 @@ import { center, type Aggregate, type Metric } from "./measure.ts";
 /** A control value the test sets, by the control's `key`. */
 export type Setting = Record<string, string | number | boolean>;
 
-export type Change =
+type Change =
   /** The demo ends somewhere else. */
   | { set: Setting; effect: "end"; end: number }
   /** The demo takes at least 500ms longer to settle. */

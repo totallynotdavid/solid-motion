@@ -68,22 +68,28 @@ function stubDraggedBox(element: HTMLElement, box: Box): void {
 describe("drag", () => {
   afterEach(() => document.body.replaceChildren());
 
-  it("follows the pointer on both axes", async () => {
-    const { container } = render(() => <motion.div drag />);
+  it.each([
+    {
+      name: "follows the pointer on both axes",
+      drag: true as const,
+      from: [10, 10] as const,
+      to: [60, 40] as const,
+      expected: { x: 50, y: 30 },
+    },
+    {
+      name: "moves along one axis only",
+      drag: "x" as const,
+      from: [0, 0] as const,
+      to: [50, 40] as const,
+      expected: { x: 50, y: 0 },
+    },
+  ])("$name", async ({ drag, from, to, expected }) => {
+    const { container } = render(() => <motion.div drag={drag} />);
     const element = container.querySelector("div") as HTMLElement;
 
-    await dragTo(element, [10, 10], [60, 40], { release: false });
+    await dragTo(element, [...from], [...to], { release: false });
 
-    expect(translation(element)).toEqual({ x: 50, y: 30 });
-  });
-
-  it("moves along one axis only", async () => {
-    const { container } = render(() => <motion.div drag="x" />);
-    const element = container.querySelector("div") as HTMLElement;
-
-    await dragTo(element, [0, 0], [50, 40], { release: false });
-
-    expect(translation(element)).toEqual({ x: 50, y: 0 });
+    expect(translation(element)).toEqual(expected);
   });
 
   it("treats a small movement as a click, not a drag", async () => {

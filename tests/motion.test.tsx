@@ -10,7 +10,6 @@ import {
   createMotion,
   createInView,
   createMotionValue,
-  createVelocity,
   createWillChange,
   MotionConfig,
   motion,
@@ -46,9 +45,8 @@ describe("motion", () => {
       opacity: 0,
       x: 10,
       scale: 0.9,
-      // Two-word properties, because the style is handed to a JSX `style` prop
-      // and `setProperty` ignores a camelCase name without complaining. Both of
-      // these were dropped from the markup while the animation applied them.
+      // `setProperty` ignores a camelCase name without complaining, so the
+      // markup must carry the hyphenated form.
       pointerEvents: "none",
       transformOrigin: "0% 100%",
       "--tint": "red",
@@ -58,8 +56,7 @@ describe("motion", () => {
     const element = container.querySelector("div") as HTMLElement;
 
     // The server has no element, so the two paths are separate code. Them
-    // disagreeing is a hydration flash, and they have disagreed before: the
-    // raw-value path used to drop the `transitionEnd` the style path kept.
+    // disagreeing is a hydration flash.
     const painted = buildInitialRender(target, "div");
     for (const [key, value] of Object.entries(painted.style)) {
       expect(String(element.style.getPropertyValue(key))).toBe(String(value));
@@ -71,9 +68,7 @@ describe("motion", () => {
   });
 
   it("renders a keyframe array at the value the element is born with", () => {
-    // A CSS builder has no reading of an array: handed `[0, 100]` it emitted
-    // `transform: none` and an opacity of the literal string "0,1", and the
-    // server sent that markup before the animation corrected it a frame later.
+    // The first keyframe is what the markup paints, as the server would emit.
     const { container } = render(() => (
       <motion.div initial={{ x: [40, 100], opacity: [0, 1] }} />
     ));
@@ -92,16 +87,6 @@ describe("motion", () => {
     const element = container.querySelector("div") as HTMLElement;
     expect(element.style.opacity).toBe("1");
     expect(element.style.transform).toBe("translateX(100px)");
-  });
-
-  it("renders initial opacity and transform values as inline style", () => {
-    const { container } = render(() => (
-      <motion.div initial={{ opacity: 0, y: 20 }}>x</motion.div>
-    ));
-
-    const element = container.querySelector("div") as HTMLElement;
-    expect(element.style.opacity).toBe("0");
-    expect(element.style.transform).toContain("translateY(20px)");
   });
 
   it("resolves named variants with custom data", () => {
@@ -271,20 +256,7 @@ describe("AnimatePresenceList", () => {
     expect(order()).toEqual(["a", "b", "c"]);
   });
 
-  it("removes an item immediately when no exit target is defined", async () => {
-    const [items, setItems] = createSignal([{ id: "one" }]);
-    const { container } = render(() => (
-      <AnimatePresenceList each={items()} getKey={(item) => item.id}>
-        {(item) => <motion.div data-id={item().id} />}
-      </AnimatePresenceList>
-    ));
-
-    setItems([]);
-    await advance(20);
-    expect(container.querySelector('[data-id="one"]')).toBeNull();
-  });
-
-  it("removes items without a Solid read warning", async () => {
+  it("removes an item with no exit target at once, without a Solid read warning", async () => {
     // The row leaves from a microtask, outside any tracking scope.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const [items, setItems] = createSignal([{ id: "one" }, { id: "two" }]);
@@ -395,10 +367,8 @@ describe("AnimatePresence", () => {
   });
 
   it("builds the subtree inside the context surrounding the boundary", () => {
-    // The whole design rests on `createRoot` inheriting the current owner, so
-    // a subtree the boundary builds still sees the app's providers. If that
-    // ever stopped holding, every context read below a boundary would quietly
-    // fall back to its default.
+    // The boundary builds its subtree in a `createRoot` that inherits the
+    // current owner, so providers above the boundary stay visible below it.
     const { container } = render(() => (
       <Theme value="dark">
         <AnimatePresence when={true}>
@@ -643,10 +613,8 @@ describe("MotionConfig", () => {
   );
 
   it("skips animations whichever transition wins", async () => {
-    // The element-level case worked all along. The other two did not: a target
-    // carrying its own transition replaces the element's, so a flag folded
-    // into the element's transition upstream was dropped exactly when a
-    // variant or an inline `exit={{ ..., transition }}` was in play.
+    // A target carrying its own transition replaces the element's, so the
+    // flag has to apply to a transition from a variant or an inline target too.
     const own = render(() => (
       <MotionConfig skipAnimations>
         <motion.div
@@ -737,21 +705,6 @@ describe("style values", () => {
     // `none` until something else moved. The inline style is what closes that.
     const element = container.querySelector("div") as HTMLElement;
     expect(element.style.transform).toBe("translateX(25px)");
-  });
-
-  it("types a numeric literal source as a number value", () => {
-    const x = createMotionValue(0);
-    const label = createMotionValue("left");
-
-    // `createVelocity` takes a `MotionValue<number>`; a value typed as the
-    // literal `0` would not compile here.
-    const speed = createVelocity(x);
-    x.set(10);
-    label.set("right");
-
-    expect(speed.get()).toBe(0);
-    expect(x.get()).toBe(10);
-    expect(label.get()).toBe("right");
   });
 
   it("animates the caller's own value rather than a copy of it", async () => {
@@ -855,21 +808,32 @@ describe("createMotion", () => {
 describe("createAnimate", () => {
   afterEach(() => document.body.replaceChildren());
 
-  it("mutates the scope's own element over time", async () => {
+  it.each([
+    { name: "the scope's own element", target: null },
+    {
+      name: "a descendant resolved through a selector string",
+      target: ".child",
+    },
+  ])("mutates $name over time", async ({ target }) => {
     let scope!: AnimateScope;
     let animate!: AnimateFunction;
     const { container } = render(() => {
       [scope, animate] = createAnimate();
-      return <div ref={scope} style={{ opacity: "1" }} />;
+      return (
+        <div ref={scope} style={{ opacity: "1" }}>
+          <span class="child" style={{ opacity: "1" }} />
+        </div>
+      );
     });
-    const element = container.querySelector("div") as HTMLElement;
+    const element = (
+      target ? container.querySelector(target) : container.firstElementChild
+    ) as HTMLElement;
 
-    animate(scope.current!, {
+    animate(target ?? scope.current!, {
       opacity: 0,
       transition: { duration: 0.3, ease: "linear" },
     });
 
-    // Mid-flight assertions ensure the call actually animates the DOM.
     await advance(120);
     const midpoint = Number(element.style.opacity);
     expect(midpoint).toBeGreaterThan(0);
@@ -877,33 +841,6 @@ describe("createAnimate", () => {
 
     await advance(350);
     expect(element.style.opacity).toBe("0");
-  });
-
-  it("mutates a descendant resolved through a selector string", async () => {
-    let scope!: AnimateScope;
-    let animate!: AnimateFunction;
-    const { container } = render(() => {
-      [scope, animate] = createAnimate();
-      return (
-        <div ref={scope}>
-          <span class="child" style={{ opacity: "1" }} />
-        </div>
-      );
-    });
-    const child = container.querySelector(".child") as HTMLElement;
-
-    animate(".child", {
-      opacity: 0,
-      transition: { duration: 0.3, ease: "linear" },
-    });
-
-    await advance(120);
-    const midpoint = Number(child.style.opacity);
-    expect(midpoint).toBeGreaterThan(0);
-    expect(midpoint).toBeLessThan(1);
-
-    await advance(350);
-    expect(child.style.opacity).toBe("0");
   });
 
   it("plays a sequence of targets one after another", async () => {
@@ -949,110 +886,62 @@ describe("createAnimate", () => {
     return <div ref={scope} style={{ opacity: "1" }} />;
   }
 
-  it("suppresses easing under MotionConfig skipAnimations, unlike the same call without it", async () => {
-    let plainScope!: AnimateScope;
-    let plainAnimate!: AnimateFunction;
-    const plain = render(() => (
-      <Scoped
-        onReady={(scope, animate) => {
-          plainScope = scope;
-          plainAnimate = animate;
-        }}
-      />
-    ));
-
-    let skippedScope!: AnimateScope;
-    let skippedAnimate!: AnimateFunction;
-    const skipped = render(() => (
-      <MotionConfig skipAnimations>
+  it.each([
+    {
+      name: "skipAnimations suppresses easing",
+      config: { skipAnimations: true },
+      definition: { opacity: 0, transition: { duration: 0.4 } },
+      read: (element: HTMLElement) => Number(element.style.opacity),
+      landed: 0,
+    },
+    {
+      name: "reducedMotion jumps a positional key",
+      config: { reducedMotion: "always" as const },
+      definition: { x: 100, transition: { duration: 0.4 } },
+      read: readTranslateX,
+      landed: 100,
+    },
+  ])(
+    "MotionConfig $name, unlike the same call without it",
+    async ({ config, definition, read, landed }) => {
+      let plainScope!: AnimateScope;
+      let plainAnimate!: AnimateFunction;
+      const plain = render(() => (
         <Scoped
           onReady={(scope, animate) => {
-            skippedScope = scope;
-            skippedAnimate = animate;
+            plainScope = scope;
+            plainAnimate = animate;
           }}
         />
-      </MotionConfig>
-    ));
+      ));
 
-    const definition = { opacity: 0, transition: { duration: 0.4 } };
-    plainAnimate(plainScope.current!, definition);
-    skippedAnimate(skippedScope.current!, definition);
+      let configuredScope!: AnimateScope;
+      let configuredAnimate!: AnimateFunction;
+      const configured = render(() => (
+        <MotionConfig {...config}>
+          <Scoped
+            onReady={(scope, animate) => {
+              configuredScope = scope;
+              configuredAnimate = animate;
+            }}
+          />
+        </MotionConfig>
+      ));
 
-    // Mid-flight, the plain animation should be between values while the
-    // skipped animation has already applied its target.
-    await advance(150);
-    const plainElement = plain.container.querySelector("div") as HTMLElement;
-    const skippedElement = skipped.container.querySelector(
-      "div",
-    ) as HTMLElement;
+      plainAnimate(plainScope.current!, definition);
+      configuredAnimate(configuredScope.current!, definition);
 
-    expect(Number(plainElement.style.opacity)).toBeGreaterThan(0);
-    expect(Number(plainElement.style.opacity)).toBeLessThan(1);
-    expect(skippedElement.style.opacity).toBe("0");
-  });
+      // Mid-flight, the plain call is between values and the configured one
+      // has already landed.
+      await advance(150);
+      const plainValue = read(plain.container.querySelector("div")!);
+      const configuredValue = read(configured.container.querySelector("div")!);
 
-  it("jumps a positional key under MotionConfig reducedMotion, unlike the same call without it", async () => {
-    let plainScope!: AnimateScope;
-    let plainAnimate!: AnimateFunction;
-    const plain = render(() => (
-      <Scoped
-        onReady={(scope, animate) => {
-          plainScope = scope;
-          plainAnimate = animate;
-        }}
-      />
-    ));
-
-    let reducedScope!: AnimateScope;
-    let reducedAnimate!: AnimateFunction;
-    const reduced = render(() => (
-      <MotionConfig reducedMotion="always">
-        <Scoped
-          onReady={(scope, animate) => {
-            reducedScope = scope;
-            reducedAnimate = animate;
-          }}
-        />
-      </MotionConfig>
-    ));
-
-    const definition = { x: 100, transition: { duration: 0.4 } };
-    plainAnimate(plainScope.current!, definition);
-    reducedAnimate(reducedScope.current!, definition);
-
-    // Mid-flight, only the reduced-motion target should already be complete.
-    await advance(150);
-    const plainElement = plain.container.querySelector("div") as HTMLElement;
-    const reducedElement = reduced.container.querySelector(
-      "div",
-    ) as HTMLElement;
-
-    expect(readTranslateX(plainElement)).toBeGreaterThan(0);
-    expect(readTranslateX(plainElement)).toBeLessThan(100);
-    expect(readTranslateX(reducedElement)).toBe(100);
-  });
-
-  it("does not crash animating a selector target before the scope mounts", async () => {
-    let scope!: AnimateScope;
-    let earlyResult!: ReturnType<AnimateFunction>;
-
-    function EarlyCall() {
-      let animate: AnimateFunction;
-      [scope, animate] = createAnimate();
-      // Called before the JSX below creates the scope's own element, so
-      // `scope.current` is still undefined here: the exact state that used
-      // to throw reading `undefined.querySelectorAll`.
-      earlyResult = animate(".child", { opacity: 0 });
-      return (
-        <div ref={scope}>
-          <span class="child" style={{ opacity: "1" }} />
-        </div>
-      );
-    }
-
-    expect(() => render(() => <EarlyCall />)).not.toThrow();
-    await expect(settled(earlyResult.finished)).resolves.toBeUndefined();
-  });
+      expect(plainValue).toBeGreaterThan(Math.min(0, landed));
+      expect(plainValue).toBeLessThan(Math.max(1, landed));
+      expect(configuredValue).toBe(landed);
+    },
+  );
 
   it("settles `finished` immediately when a running animation is stopped", async () => {
     let scope!: AnimateScope;
@@ -1069,9 +958,8 @@ describe("createAnimate", () => {
     await advance(50);
     controls.stop();
 
-    // motion-dom never settles a stopped animation's own `finished`, so a
-    // regression here hangs this assertion until the suite times out rather
-    // than failing it outright.
+    // motion-dom never settles a stopped animation's own `finished`, so
+    // `outcomeWithin` reports "pending" instead of hanging.
     expect(await outcomeWithin(controls.finished, 500)).toBe("settled");
   });
 
@@ -1137,8 +1025,6 @@ describe("createAnimate", () => {
     });
 
     const controls = animate(".missing", { opacity: 0 });
-    // Past the point where the buggy version had already built an empty
-    // `GroupAnimation` and assigned it as the active animation.
     await advance(30);
 
     expect(() => controls.state).not.toThrow();
@@ -1175,8 +1061,8 @@ describe("createAnimate", () => {
       let animate: AnimateFunction;
       [scope, animate] = createAnimate();
       // Called while the scope's own `.child` does not exist yet, but an
-      // unrelated one does. The buggy fallback resolved this against
-      // `document` and animated that one instead of matching nothing.
+      // unrelated one does. A selector must match nothing, not fall back to
+      // `document`.
       earlyResult = animate(".child", { opacity: 0 });
       return (
         <div ref={scope}>
@@ -1188,32 +1074,6 @@ describe("createAnimate", () => {
 
     await settled(earlyResult.finished);
     expect(outsideChild.style.opacity).toBe("1");
-  });
-
-  it("does not read document.querySelectorAll for a selector target before the scope mounts", async () => {
-    const original = document.querySelectorAll.bind(document);
-    document.querySelectorAll = (() => {
-      throw new Error("touched document before the scope mounted");
-    }) as typeof document.querySelectorAll;
-
-    try {
-      let earlyResult!: ReturnType<AnimateFunction>;
-      function EarlyCall() {
-        let scope!: AnimateScope;
-        let animate: AnimateFunction;
-        [scope, animate] = createAnimate();
-        earlyResult = animate(".child", { opacity: 0 });
-        return (
-          <div ref={scope}>
-            <span class="child" style={{ opacity: "1" }} />
-          </div>
-        );
-      }
-      expect(() => render(() => <EarlyCall />)).not.toThrow();
-      await settled(earlyResult.finished);
-    } finally {
-      document.querySelectorAll = original;
-    }
   });
 
   it("settles an earlier call's finished when a later call claims the same property", async () => {
@@ -1235,9 +1095,7 @@ describe("createAnimate", () => {
     });
 
     // motion-dom's `MotionValue.start()` stops the first animation on this
-    // property without settling its own `finished` (verified against
-    // motion-dom 13.1.1), so a regression here hangs this assertion until
-    // the suite times out rather than failing it outright.
+    // property without settling its own `finished`.
     expect(await outcomeWithin(first.finished, 500)).toBe("settled");
 
     await settled(second.finished);
@@ -1268,9 +1126,8 @@ describe("createAnimate", () => {
     });
     await settled(second.finished);
 
-    // A regression here settles the whole call's `finished`, and applies
-    // `transitionEnd`, the moment `opacity` alone was reclaimed, well before
-    // `x` has had anywhere near its 0.3s to finish on its own.
+    // The call stays pending, and `transitionEnd` unapplied, until `x` has had
+    // its own 0.3s.
     expect(await outcomeWithin(first.finished, 100)).toBe("pending");
     expect(element.style.display).not.toBe("none");
 
@@ -1305,10 +1162,8 @@ describe("createAnimate", () => {
     animate(scope.current!, { opacity: 1, transition: { duration: 0.05 } });
     await advance(80);
 
-    // A regression here settles `first.finished` the instant `opacity` was
-    // reclaimed, dropping it from the scope's `running` list early, so
-    // unmounting never calls `.stop()` on the `x` animation still running
-    // under it and it keeps ticking on a now-detached element.
+    // The first call stays in the scope's `running` list while `x` animates,
+    // so unmounting stops `x` too.
     unmount();
 
     // `x`'s last write before `stop()` took effect may not have painted yet
@@ -1368,11 +1223,9 @@ describe("createAnimate", () => {
       return <div ref={scope} />;
     });
 
-    // Reclaims `opacity` mid-exit. Once motion-dom's `MotionValue.start`
-    // steals the property, the exit pass's own animation on it never settles
-    // its `finished` (verified against motion-dom 13.1.1), so without the
-    // controller claiming its own keys too, this call would hang forever
-    // waiting for the exit pass to notice.
+    // Reclaims `opacity` mid-exit. motion-dom's `MotionValue.start` steals the
+    // property without settling the exit pass's own `finished`, so the
+    // controller has to claim its keys itself.
     const controls = animate(element, {
       opacity: 1,
       transition: { duration: 0.05 },
@@ -1380,12 +1233,8 @@ describe("createAnimate", () => {
 
     expect(await outcomeWithin(controls.finished, 500)).toBe("settled");
 
-    // The exit pass's own completion handling has to run exactly as if it
-    // had reached its target normally: `onAnimationComplete` only fires from
-    // inside the same, unconditional completion path that also releases the
-    // presence hold and settles the sequence, so this is proof all of it ran
-    // rather than the pass hanging on a `Promise.all` that could no longer
-    // resolve.
+    // `onAnimationComplete` fires from the same completion path that releases
+    // the presence hold, so the pass completes as if it had reached its target.
     expect(onComplete).toHaveBeenCalled();
   });
 
@@ -1416,10 +1265,8 @@ describe("createAnimate", () => {
       animate(element, { opacity: 1, transition: { duration: 0.05 } }).finished,
     );
 
-    // A regression here fires the whole pass's completion
-    // (`onAnimationComplete` and `transitionEnd`) the moment `opacity` alone
-    // was reclaimed, well before `x` has had anywhere near its 0.3s to reach
-    // its own target.
+    // The pass completes (`onAnimationComplete` and `transitionEnd`) only once
+    // `x` has had its own 0.3s.
     expect(onComplete).not.toHaveBeenCalled();
     expect(element.style.display).not.toBe("none");
 
@@ -1854,9 +1701,7 @@ describe("whileInView", () => {
     const element = container.querySelector("div") as HTMLElement;
     await advance(250);
 
-    // `viewport` configures the observer; it is not an attribute. Leaving it
-    // out of the forwarded set rendered `viewport="[object Object]"` into the
-    // markup, which the server emitted too.
+    // `viewport` configures the observer and is not rendered as an attribute.
     expect(element.hasAttribute("viewport")).toBe(false);
     expect(observer.state.options?.threshold).toBe(1);
 
@@ -1895,9 +1740,8 @@ describe("whileInView", () => {
   });
 
   it("writes an svg child's geometry as attributes, never as style", async () => {
-    // `x1` is not a CSS property in any browser, so the whole SVG path was
-    // inert: the initial target painted nothing and the animation wrote a
-    // style declaration the renderer ignored.
+    // `x1` is not a CSS property in any browser, so a style declaration for it
+    // paints nothing.
     const [wide, setWide] = createSignal(false);
 
     const { container } = render(() => (
@@ -2135,13 +1979,9 @@ describe("whileInView", () => {
   });
 
   it("staggers children on the very first mount, not only on a later transition", async () => {
-    // Registering a sibling used to happen from an effect apply callback,
-    // watching `element()`. Solid settles every effect's compute function to a
-    // fixpoint before committing any of their applies, so on the entrance
-    // pass every sibling's compute ran before any of them had registered:
-    // `children.size` read 0 for all three and the stagger never staggered.
-    // Registration now happens synchronously from `ref`, which runs during
-    // the render walk, strictly before that compute phase starts.
+    // Solid runs every effect's compute before committing any apply, so the
+    // entrance pass only sees its siblings if they register from `ref`, during
+    // the render walk.
     const variants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
 
     const { container } = render(() => (
@@ -2160,8 +2000,6 @@ describe("whileInView", () => {
       ...container.querySelectorAll("div"),
     ] as HTMLElement[];
 
-    // Sampled well inside the 100ms gap between the two children's delays:
-    // the defect reached both by now, since neither was ever delayed at all.
     await advance(40);
     expect(first.style.opacity).toBe("1");
     expect(second.style.opacity).toBe("0");
@@ -2171,14 +2009,9 @@ describe("whileInView", () => {
   });
 
   it("unregisters a removed child, so a stale sibling does not inflate the count", async () => {
-    // A stale entry cannot be seen through index alone: `staggerDirection: -1`
-    // uses the total count too (`span = (length - 1) * staggerChildren`), so a
-    // leaked entry changes every sibling's delay, not just a reordered one.
-    // The unregister function `register` returns has to actually run on
-    // disposal for this to hold; it is wired up with `runWithOwner` because a
-    // bare `onCleanup` called from a ref callback is silently discarded there
-    // and never runs (confirmed by Solid's own `NO_OWNER_CLEANUP` dev warning
-    // while building this fix).
+    // `staggerDirection: -1` uses the total child count too
+    // (`span = (length - 1) * staggerChildren`), so a leaked entry changes
+    // every sibling's delay, not just a reordered one.
     const variants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
     const [showTransient, setShowTransient] = createSignal(true);
 

@@ -322,7 +322,7 @@ describe("propagate", () => {
     expect(exited).toContain("outer");
   });
 
-  it("leaves an inner boundary without it alone, as before", async () => {
+  it("does not wait for an inner boundary that lacks propagate", async () => {
     const [open, setOpen] = createSignal(true);
     const { container } = render(() => (
       <AnimatePresence when={open()}>

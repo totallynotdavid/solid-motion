@@ -29,19 +29,14 @@ describe("createCycle", () => {
     expect(item()).toBe("a");
   });
 
-  it("jumps to an index", () => {
+  it.each([
+    { name: "jumps to an index", index: 2, expected: 100 },
+    { name: "wraps an index past the end", index: 4, expected: 50 },
+  ])("$name", ({ index, expected }) => {
     const [item, cycle] = setup(0, 50, 100);
 
-    cycle(2);
+    cycle(index);
     flush();
-    expect(item()).toBe(100);
-  });
-
-  it("wraps an index past the end", () => {
-    const [item, cycle] = setup(0, 50, 100);
-
-    cycle(4);
-    flush();
-    expect(item()).toBe(50);
+    expect(item()).toBe(expected);
   });
 });

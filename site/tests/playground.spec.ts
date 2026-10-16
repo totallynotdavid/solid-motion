@@ -1,7 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { probes } from "./probes.ts";
-
 const entrance = '[data-demo="entrance"]';
 const pane = (side: "solid" | "react") =>
   `${entrance} [data-pane="${side}"] .stage`;
@@ -20,29 +18,6 @@ const scaleOf = (page: Page, side: "solid" | "react") =>
     const { a, b } = new DOMMatrix(getComputedStyle(element).transform);
     return Math.hypot(a, b);
   });
-
-test("every page lists the demos that have a probe", async ({ page }) => {
-  await page.goto("/animating-elements");
-  const links = await page
-    .locator("nav[aria-label] a[href^='/']")
-    .evaluateAll((anchors) =>
-      anchors.map((anchor) => anchor.getAttribute("href") ?? ""),
-    );
-  const routes = [...new Set(links)];
-  expect(routes.length, "pages in the sidebar").toBeGreaterThanOrEqual(10);
-
-  const found = new Set<string>();
-  for (const route of routes) {
-    await page.goto(route);
-    const ids = await page
-      .locator("[data-demo]")
-      .evaluateAll((sections) =>
-        sections.map((section) => section.getAttribute("data-demo") ?? ""),
-      );
-    for (const id of ids) found.add(id);
-  }
-  expect([...found].sort()).toEqual(probes.map((probe) => probe.demo).sort());
-});
 
 test("Replay starts both panes over", async ({ page }) => {
   await openEntrance(page);

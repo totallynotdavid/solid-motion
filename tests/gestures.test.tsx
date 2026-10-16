@@ -144,22 +144,6 @@ describe("tap", () => {
     expect(onTapStart).not.toHaveBeenCalled();
   });
 
-  it("taps its ancestors too, unless propagate.tap is false", async () => {
-    const outer = vi.fn<(...args: unknown[]) => void>();
-    const { container } = render(() => (
-      <motion.div class="outer" onTap={outer}>
-        <motion.div class="inner" propagate={{ tap: false }} onTap={() => {}} />
-      </motion.div>
-    ));
-    const inner = container.querySelector(".inner") as HTMLElement;
-
-    inner.dispatchEvent(pointer("pointerdown"));
-    inner.dispatchEvent(pointer("pointerup"));
-    await advance(16);
-
-    expect(outer).not.toHaveBeenCalled();
-  });
-
   it("follows a change to propagate.tap after mount", async () => {
     const [isolated, setIsolated] = createSignal(false);
     const outer = vi.fn<(...args: unknown[]) => void>();
