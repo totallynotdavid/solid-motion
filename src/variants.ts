@@ -226,7 +226,11 @@ function createSequencer(orchestration: () => Orchestration) {
 
       return turn(
         (queued) => {
-          if (!selfRunning || orchestration().when !== "beforeChildren") {
+          // `hold` runs when a pass starts, outside any tracking scope.
+          if (
+            !selfRunning ||
+            untrack(orchestration).when !== "beforeChildren"
+          ) {
             return false;
           }
           waitingChildren.push(queued);
@@ -245,7 +249,7 @@ function createSequencer(orchestration: () => Orchestration) {
 
       return turn(
         (queued) => {
-          if (orchestration().when !== "afterChildren") return false;
+          if (untrack(orchestration).when !== "afterChildren") return false;
 
           // Children run their own effects after this one, so the count is not
           // final until the next microtask. That is the same reading the
