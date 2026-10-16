@@ -14,5 +14,5 @@
   "experimentalSortImports": {
     "newlinesBetween": true
   },
-  "ignorePatterns": ["**/*.md", "dist/**", "bun.lock"]
+  "ignorePatterns": ["dist/**", "bun.lock"]
 }
