@@ -36,6 +36,9 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      - run: bunx playwright install --with-deps chromium
+        working-directory: site
+
       - run: bun run check
 
   publish:
@@ -72,7 +75,6 @@ jobs:
       - run: npm install -g npm@latest
 
       - run: npm publish --access public
-
   github:
     name: GitHub release
     needs: publish
