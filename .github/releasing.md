@@ -1,7 +1,7 @@
 # Releasing
 
 Pushing a tag `vX.Y.Z` publishes that version to npm. The
-[release workflow](workflows/release.yml) runs `bun run check`, publishes
+[release workflow](workflows/release.yml) runs `mise run check`, publishes
 through npm trusted publishing, then creates a GitHub release with generated
 notes. No npm token is stored in the repository.
 
@@ -56,7 +56,8 @@ Or run the same from a terminal, logged in as a package owner:
 
 ```sh
 npm trust github @totallynotdavid/solid-motion \
-  --file release.yml --repo totallynotdavid/solid-motion --env npm
+  --file release.yml --repo totallynotdavid/solid-motion --env npm \
+  --allow-publish
 ```
 
 `npm trust list @totallynotdavid/solid-motion` shows what is set. The values

@@ -1,29 +1,29 @@
 # Contributing
 
-Install the dependencies with [Bun](https://bun.sh):
+[mise](https://mise.jdx.dev) installs Bun and Node at the versions in
+[`mise.toml`](../mise.toml), and runs every task. Install the dependencies:
 
 ```sh
-bun install
+mise run install
 ```
 
 Run every check before you open a pull request:
 
 ```sh
-bun run check
+mise run check
 ```
 
-It runs these steps in order, and stops at the first one that fails:
+It runs these tasks:
 
-| Script                 | What it does                                           |
-| ---------------------- | ------------------------------------------------------ |
-| `bun run typecheck`    | `tsc --noEmit` over `src` and `tests`.                 |
-| `bun run lint`         | `oxlint`, with warnings treated as errors.             |
-| `bun run check:format` | `oxfmt --check` for code, `prettier --check` for docs. |
-| `bun run test`         | `vitest run`.                                          |
-| `bun run build`        | `tsc` writes the declarations to `dist`.               |
-| `bun run check:site`   | Type-checks, builds and tests the site (see below).    |
+| Task                  | What it does                                             |
+| --------------------- | -------------------------------------------------------- |
+| `mise run lint`       | `oxlint` with warnings as errors, and `oxfmt --check`.   |
+| `mise run typecheck`  | `tsc --noEmit` over the library, its tests and the site. |
+| `mise run test`       | `vitest run`.                                            |
+| `mise run build`      | `tsc` writes the declarations to `dist`.                 |
+| `mise run check:site` | Builds the site and tests it in Chromium (see below).    |
 
-`bun run format` fixes the formatting.
+`mise run fix` applies the safe lint fixes and formats code and Markdown.
 
 ## Site
 
@@ -36,10 +36,11 @@ bun run --filter solid-motion-site dev    # dev server on localhost:5173
 bun run --filter solid-motion-site build  # static files in site/dist
 ```
 
-The tests drive every demo in Chromium. Install the browser once:
+The tests drive every demo in Chromium. `mise run check:site` installs the
+browser first. Install it alone with:
 
 ```sh
-cd site && bunx playwright install chromium
+mise run install:browsers
 ```
 
 A demo is three files in `site/src/demos`: `<name>.config.ts` for its
@@ -72,11 +73,7 @@ and checks what the element looks like. It does not mock `motion-dom`.
 The manual is in [`docs/`](../docs/README.md). Each page has an example. Run an
 example before you change the text around it.
 
-Format changed Markdown files with:
-
-```sh
-bunx prettier --print-width 80 --prose-wrap always --write docs/animating-elements.md
-```
+`mise run fix` formats the Markdown.
 
 For the code layout, read [Architecture](../docs/architecture.md).
 
