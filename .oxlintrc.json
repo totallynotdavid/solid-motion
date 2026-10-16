@@ -14,6 +14,12 @@
   },
   "overrides": [
     {
+      "files": ["site/src/pages/landing.tsx"],
+      "rules": {
+        "import/default": "off"
+      }
+    },
+    {
       "files": ["**/tests/**/*.ts", "**/tests/**/*.tsx"],
       "rules": {
         "eslint/no-await-in-loop": "off"

@@ -20,6 +20,9 @@
     "type": "git",
     "url": "git+https://github.com/totallynotdavid/solid-motion.git"
   },
+  "workspaces": [
+    "site"
+  ],
   "files": [
     "src",
     "dist"
@@ -45,10 +48,11 @@
     "format:md": "prettier --print-width 80 --prose-wrap always --write '**/*.md'",
     "check:format": "oxfmt --check && prettier --print-width 80 --prose-wrap always --check '**/*.md'",
     "test": "vitest run",
-    "check": "bun run typecheck && bun run lint && bun run check:format && bun run test && bun run build"
+    "check:site": "bun run --filter solid-motion-site typecheck && bun run --filter solid-motion-site test",
+    "check": "bun run typecheck && bun run lint && bun run check:format && bun run test && bun run build && bun run check:site"
   },
   "dependencies": {
-    "motion-dom": "^14.0.0"
+    "motion-dom": "^14.3.0"
   },
   "devDependencies": {
     "@solidjs/testing-library": "^1.0.0-beta.3",
