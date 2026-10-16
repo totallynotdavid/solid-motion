@@ -34,15 +34,10 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
   });
 
   /**
-   * One list, not several. Everything the boundary needs is a view of it: what
-   * is on screen is the list, what is leaving is the entries with `present`
-   * false, and an item's latest data is its `item`.
-   *
-   * The earlier version kept a present list, a rendered list, a key index, an
-   * exiting set and a signal per item, which is the shape React forces because
-   * it cannot hand a surviving child new data without re-rendering it. Solid's
-   * keyed `<For>` gives each row an accessor that follows entry replacement
-   * without recreating the row, so a single signal covers all of it.
+   * The one list the boundary works from. What is on screen is the list, what
+   * is leaving is the entries with `present` false, and an item's latest data is
+   * its `item`. Solid's keyed `<For>` gives each row an accessor that follows
+   * entry replacement without recreating the row.
    */
   const [entries, setEntries] = createSignal<PresenceEntry<T>[]>(
     untrack(() => props.each.map(toEntry)),
@@ -101,8 +96,8 @@ export function AnimatePresenceList<T>(props: AnimatePresenceListProps<T>) {
 }
 
 /**
- * Rebuilds the list from the incoming collection, keeping anything that left it
- * at the index it used to hold so a row does not jump while it animates out.
+ * Rebuilds the list from the incoming collection. An item that left it keeps its
+ * index, so a row does not jump while it animates out.
  */
 function diffEntries<T>(
   current: readonly PresenceEntry<T>[],

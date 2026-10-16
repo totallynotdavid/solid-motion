@@ -7,7 +7,7 @@ import type { AnimationDefinition, Transition } from "./types";
 /** Every prop a variant label can be attached to, in Motion's own vocabulary. */
 export type VariantLayer = "initial" | "animate" | "exit" | GestureName;
 
-export interface Orchestration {
+interface Orchestration {
   /**
    * A per-child function supersedes `staggerChildren`/`staggerDirection`
    * entirely, matching motion: `stagger()` (or a caller's own function) already
@@ -47,12 +47,12 @@ export interface VariantScope {
  * calls that when its turn comes; `done` reports the pass over, whether it
  * finished or lost to a later one.
  */
-export interface PassTurn {
+interface PassTurn {
   wait: (begin: VoidFunction) => void;
   done: () => void;
 }
 
-export interface Sequencer {
+interface Sequencer {
   /** A turn for a descendant's pass, or `undefined` when nothing orders them. */
   child: () => PassTurn | undefined;
   /** A turn for this element's own pass, on the same terms. */
@@ -81,20 +81,12 @@ function isVariantLabel(
 }
 
 /**
- * `Transition` already declares every one of these fields; it is motion-dom's
- * own type, re-exported wholesale. The cast this used to reach through was
- * pure narrowing theatre, and a dangerous one: it told the compiler
- * `delayChildren` was always a `number` when the field it was reading is
- * typed `number | DynamicOption<number>` upstream, so a caller passing
- * `stagger()` (motion's own recommended replacement for `staggerChildren`,
- * not a foreign shape) type-checked and then hit `functionValue + offset` in
- * `delayFor`, coercing the function to its source text as a string. No
- * warning, no error, a garbled delay.
+ * `delayChildren` stays `number | DynamicOption<number>`, because `stagger()`
+ * returns a function and `delayFor` has to branch on it.
  *
- * `when` keeps its own narrowing, because motion's type also allows an
- * arbitrary string there for hooking into custom orchestration signals this
- * package does not implement; anything other than the two literals falls back
- * to `false` rather than being trusted through.
+ * `when` is narrowed, because motion's type also allows an arbitrary string for
+ * custom orchestration signals this package does not implement. Anything other
+ * than the two literals reads as `false`.
  */
 function readOrchestration(transition: Transition | undefined): Orchestration {
   return {

@@ -78,12 +78,6 @@ export interface MotionHandle {
 /**
  * Animation for an element you render yourself.
  *
- * This is the whole engine. `<motion.div>` is this function plus a `Dynamic`
- * and a prop spread, and the spread is what it costs: every attribute goes
- * through runtime diffing instead of the static setters Solid's compiler would
- * otherwise emit. Calling the primitive directly keeps `class`, `onClick` and
- * the rest compiled, which is what makes it worth having under a long list.
- *
  * Options arrive as a thunk so they stay reactive. A fresh object on every read
  * is fine and costs nothing: values are diffed one at a time, so an unchanged
  * `opacity` in a rebuilt target is not an animation to restart.
@@ -237,20 +231,13 @@ export function createMotion<TCustom = unknown>(
     };
   });
 
-  // The caller's own plain CSS lands on the element through Solid's native
-  // reactivity (`motion.tsx`'s merged `style`), not through this package's own
-  // paint loop, so `claimInlineStyle` (values.ts) cannot tell it apart from
-  // paint and would otherwise read it as one. Solid already tracks it
-  // precisely; feed changes into the same touched/commit path a document
-  // mutation would take. Deferred because mounting already schedules its own
-  // commit when one is needed.
+  // The caller's plain CSS reaches the element through Solid's own reactivity,
+  // so the inline-style claim reads it as paint. Report its changes to the
+  // layout watcher here. Deferred because mounting schedules its own commit.
   createEffect(
     () => {
-      // `resolveStyle`, not `plainStyle`: it calls every accessor entry, so an
-      // accessor-wrapped style value (`style={{ "pointer-events": () => ... }}`)
-      // is actually invoked in this tracking scope and its signal gets
-      // subscribed. `plainStyle` only checks each entry's type and never calls
-      // it, so it would never re-run this effect for that form.
+      // `resolveStyle`, not `plainStyle`: only it calls accessor entries, so
+      // their signals are subscribed in this tracking scope.
       resolveStyle(options().style);
       // Read here, in the tracking compute phase, not in the untracked apply
       // callback below.
@@ -440,17 +427,12 @@ export function createMotion<TCustom = unknown>(
       controller.mount(node);
 
       // Register during the render walk, not from an effect watching the node.
-      // Solid settles every effect's compute function to a fixpoint before
-      // committing any of their apply steps, so a sibling registering from an
-      // apply callback is always too late for another sibling's compute in the
-      // same mount: on the very first pass every child's delay computed
-      // `children.size === 0` and a stagger never staggered. Registering here
-      // runs before that compute phase, so every sibling mounted in the same
-      // pass already has a position by the time one asks for its own.
+      // Solid runs every effect's compute before committing any apply, so a
+      // sibling registering from an apply is too late for another sibling's
+      // compute in the same mount. Registering here gives every sibling a
+      // position before any of them asks for its delay.
       //
-      // Refs run outside an owner, so restore the captured owner for cleanup.
-      // A bare `onCleanup` here is silently discarded and the child never
-      // leaves the registry.
+      // Refs run outside an owner, so cleanup runs under the captured owner.
       if (inherited) {
         const unregister = inherited.register(node);
         runWithOwner(owner, () => onCleanup(unregister));

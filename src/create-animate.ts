@@ -278,12 +278,10 @@ function runTarget(
           );
 
           if (!animation) {
-            // `store.animate()` still called `value.start()` on this pair,
-            // which steals it from whoever was driving it before even though
-            // motion resolved the target instantly and returned nothing to
-            // wait on. Claiming it anyway is what lets that notification
-            // reach them; this call itself has nothing left to wait on here,
-            // since the jump already happened synchronously above.
+            // `store.animate()` called `value.start()` on this pair, which takes
+            // it from whoever was driving it even though motion resolved the
+            // target instantly. Claiming it anyway lets that notification reach
+            // them. This call has nothing left to wait on for this key.
             claim(element, key, () => undefined);
             continue;
           }
@@ -331,10 +329,6 @@ function runTarget(
       }
 
       active = new GroupAnimationWithThen(animations);
-      // A `.pause()`, `.complete()`, `.time`/`.speed` write, or
-      // `.attachTimeline()` made before this point queued itself on the
-      // controls below instead of finding nothing to act on; replay it now
-      // that there is something to act on.
       applyPending();
     });
   });
@@ -344,9 +338,8 @@ function runTarget(
     const resolve = settle;
     settle = undefined;
     active?.stop();
-    // motion-dom's `stop()` tears down the driver without settling
-    // `finished` (verified against motion-dom 13.1.1), so a stopped run has
-    // to settle its own promise rather than wait on one that never will.
+    // motion-dom's `stop()` tears down the driver without settling `finished`,
+    // so a stopped run settles its own promise.
     resolve();
   };
 

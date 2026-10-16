@@ -160,13 +160,10 @@ function trackScroll(
 }
 
 /**
- * ResizeObserver only fires on the container's border box, not its scrollable
- * content size, so a fixed-height container whose rows or images load in
- * (growing scrollHeight/scrollWidth without resizing the container) never
- * triggers a remeasure. Frame-polling is the same tradeoff Framer Motion's
- * `trackContentSize` makes: content growth doesn't fire resize, so a resize
- * observer can't catch it, and comparing every frame is the exposed opt-in
- * rather than the default.
+ * ResizeObserver reports the container's border box, not its scrollable content
+ * size, so content that grows a fixed-height container's scrollHeight or
+ * scrollWidth triggers no remeasure. Comparing every frame catches it, which is
+ * why `trackContentSize` is opt-in.
  */
 function pollContentSize(
   container: HTMLElement,
@@ -221,50 +218,21 @@ function measureAxis(
 
 /**
  * Returns target's border-box offset from container's padding-box origin
- * along one axis - the coordinate scrollTop/scrollLeft and
+ * along one axis, the origin that scrollTop/scrollLeft and
  * clientHeight/clientWidth measure from.
  *
- * Walking a single offsetParent chain from target and stopping at container
- * breaks whenever container is `position: static`: a static element is
- * never anyone's offsetParent, so the walk skips straight past it and lands
- * on whatever positioned ancestor sits above it instead (or the document
- * root), measuring against the wrong origin entirely. This is a known gap
- * in upstream Framer Motion's own implementation, which only warns about it
- * in dev rather than handling it. Measuring each element's own offset from
- * the document independently and subtracting sidesteps that: both walks
- * bottom out at the same root regardless of which ancestors are
- * positioned, so the difference is the target-to-container distance
- * whether or not container itself qualifies as an offsetParent.
+ * Each element is measured from the document on its own and the two are
+ * subtracted. A single offsetParent walk from target that stops at container
+ * would skip past a `position: static` container, because a static element is
+ * never anyone's offsetParent.
  *
- * `offsetTop`/`offsetLeft` measure from the offsetParent's *padding* edge,
- * not its border edge, so every hop after the first still needs that
- * ancestor's own border added back to reconstruct a true
- * border-edge-to-border-edge distance; otherwise each intermediate
- * positioned ancestor's border silently disappears from a multi-hop chain.
- * The final subtraction of container's own border converts the result from
- * border-edge-relative to container's actual padding-box origin.
+ * Transforms are invisible to offsets. getBoundingClientRect() would see them,
+ * but a scrolled target's rect moves with scrollTop, which breaks the fixed
+ * reference `measureAxis` needs.
  *
- * This measurement is intentionally blind to CSS transforms on any element
- * between target and container (or on container/target themselves): a
- * `transform: translate/scale/rotate` never moves offsetTop/offsetLeft, only
- * where the box paints. The alternative - measuring via
- * `getBoundingClientRect()` - reflects transforms but reintroduces the exact
- * scroll-dependence bug this design replaced (a scrolled target's rect moves
- * with the container's own scrollTop, corrupting the fixed reference point
- * `measureAxis` needs). The same trade-off applies to a target nested inside
- * a `position: fixed` ancestor while container isn't: the two independent
- * walks below can bottom out at different reference frames (a fixed
- * element's offsetParent is null per spec) and the subtraction stops being
- * meaningful. Upstream Framer Motion's actual production implementation
- * (`resolveOffsets`/`calcInset` in framer-motion's offsets/inset.ts) has both
- * of the same limitations - it is also pure offsetTop/offsetParent based -
- * and its own test suite only asserts that a dev warning fires for a static
- * container, never that the resulting value is correct in that case. Given
- * that, and that this measurement already fixes two concrete regressions
- * upstream's real implementation still has (intermediate-ancestor border
- * drop, and position: static containers being silently measured from the
- * wrong origin instead of just warned about), this trade-off is accepted
- * rather than chased further.
+ * A target inside a `position: fixed` ancestor that does not contain container
+ * is unsupported: a fixed element's offsetParent is null, so the two walks end
+ * at different origins.
  */
 function axisInset(
   target: HTMLElement,
@@ -285,6 +253,8 @@ function offsetFromDocument(element: HTMLElement, axis: "x" | "y"): number {
   let node: HTMLElement | null = element;
   while (node) {
     offset += axis === "y" ? node.offsetTop : node.offsetLeft;
+    // offsetTop and offsetLeft measure from the offsetParent's padding edge, so
+    // every hop after the first adds that ancestor's own border back.
     if (node !== element) {
       offset += axis === "y" ? node.clientTop : node.clientLeft;
     }

@@ -89,10 +89,9 @@ type KeyframeEdge = "first" | "last";
  * actually born carrying.
  *
  * This is the sole owner of that rule, so nothing downstream has to know
- * keyframe arrays exist: `buildInitialRender` handed `{ x: [0, 100] }` produced
- * `transform: none` and an `opacity` of the literal string `0,1`, because a CSS
- * builder has no reading of an array. The server emitted that markup and the
- * client painted it, and then the animation corrected it a frame later.
+ * keyframe arrays exist. A CSS builder has no reading of an array and would
+ * emit `transform: none` for `{ x: [0, 100] }` and the string `0,1` for an
+ * `opacity` array.
  *
  * `null` inside an array means "carry on from wherever this value already is",
  * which describes no rendered value at all, so such a key is left out.

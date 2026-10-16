@@ -14,14 +14,9 @@ type MotionHost =
   | ((props: Record<string, unknown>) => JSX.Element);
 
 /**
- * The ergonomic layer over `createMotion`, and nothing more than that.
- *
- * What it adds over calling the primitive is a component boundary and a prop
- * spread, so every attribute is applied by runtime diffing instead of the
- * static setters Solid's compiler emits for a literal element. That cost is
- * bounded and worth paying for the familiar API. What it adds that the
- * primitive cannot is the variant scope: descendants read it from context, and
- * only a component can render them inside a provider.
+ * `createMotion` plus a component boundary and a prop spread. The component
+ * provides the variant scope, because only a component can render descendants
+ * inside a provider.
  */
 function createMotionComponent<TProps extends object>(host: MotionHost) {
   const tag = typeof host === "string" ? host : undefined;

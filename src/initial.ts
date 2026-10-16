@@ -64,11 +64,8 @@ export function buildInitialRender(
 
   // Hyphenated, because this style is handed to a JSX `style` prop rather than
   // written through motion's renderer. Solid sets an object entry with
-  // `setProperty`, which takes CSS property names and silently ignores a
-  // camelCase one: `pointerEvents` and `transformOrigin` in an `initial` target
-  // never reached the markup, while the animation path assigns
-  // `element.style[key]` and applied them fine. Measured: the painted element
-  // carried `height: auto; overflow: hidden` and no `pointer-events` at all.
+  // `setProperty`, which takes CSS property names and ignores a camelCase one.
+  // The animation path assigns `element.style[key]` and takes camelCase.
   const style: Record<string, string | number> = {};
   for (const [key, value] of Object.entries(state.style)) {
     style[camelToDash(key)] = value as string | number;

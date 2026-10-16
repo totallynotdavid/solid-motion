@@ -193,17 +193,9 @@ export interface AnimatePresenceProps<T> extends PresenceBehaviour {
 }
 
 /**
- * Keeps a subtree mounted while it animates out.
- *
- * `when` rather than a conditional child, because Solid disposes a branch the
- * moment its condition flips: by the time a boundary could notice the child had
- * gone, the motion element's cleanup has already run and there is nothing left
- * to animate. React can hold a removed child because it re-renders and diffs;
- * Solid gives no such window. So the boundary builds the subtree itself, in a
- * root parented to this component, and decides when that root is torn down.
- *
- * That is also why `when` doubles as the key. It is the one value the caller
- * already has, and Motion's own `key` prop on the child says the same thing.
+ * Keeps a subtree mounted while it animates out. The subtree is built in a root
+ * parented to this component, and this component decides when that root is torn
+ * down.
  */
 export function AnimatePresence<T>(props: AnimatePresenceProps<T>): Element {
   const owner = getOwner();

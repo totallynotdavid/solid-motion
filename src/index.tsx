@@ -46,9 +46,8 @@ export {
   mix,
   spring,
 } from "motion-dom";
-// Builds the per-child delay function `delayChildren` takes: motion's own
-// replacement for `staggerChildren`/`staggerDirection`, which stay supported
-// as the plain-number convenience they always were.
+// Builds the per-child delay function accepted by `delayChildren`.
+// Numeric `staggerChildren` and `staggerDirection` values remain supported.
 export { stagger } from "motion-dom";
 export {
   AnimatePresence,

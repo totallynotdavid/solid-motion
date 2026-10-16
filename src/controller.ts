@@ -65,12 +65,10 @@ export interface MotionController {
 
 export function createMotionController(
   /**
-   * The target the element was rendered with, in raw (pre-CSS) units. Passed at
-   * construction rather than on a pass: it describes the element, not the
-   * animation, and the ref fires before the first pass is ever queued. Reaching
-   * it through the first pass meant the value store was built with nothing and
-   * fell back to reading the DOM, which round-trips a transform through the
-   * computed matrix and cannot tell `rotate: 450` from `rotate: 90`.
+   * The target the element was rendered with, in raw (pre-CSS) units. It
+   * describes the element, not a pass, and the value store is built from it when
+   * the ref fires. A store built without it reads the DOM instead, and the
+   * computed transform matrix cannot tell `rotate: 450` from `rotate: 90`.
    */
   initialValues: Record<string, string | number>,
   /** Values from `style` that the caller owns; bound, never created here. */
@@ -192,12 +190,10 @@ export function createMotionController(
     let pending = 0;
 
     // Animations are created on motion's frame, never inline in Solid's flush.
-    // `time.now()` memoises per synchronous block and is only cleared on a
-    // microtask, so an animation started from the middle of a long synchronous
-    // render is handed the clock reading from the top of that block. It is born
-    // with a start time in the past and completes on its first tick: a 100ms
-    // fade that never fades. Measured at 107ms of drift for a single component
-    // render, and a route transition or a long list is worse.
+    // `time.now()` is memoised per synchronous block and cleared on a
+    // microtask, so an animation started in the middle of a long render gets
+    // the clock reading from the top of that block. Its start time is then in
+    // the past, and a short animation completes on its first tick.
     //
     // Inside `frame.update` the clock is the frame's own, which is the clock the
     // animation's ticks read. It also coalesces every element animating in one
@@ -213,10 +209,10 @@ export function createMotionController(
         );
 
         if (!animation) {
-          // `store.animate()` still stole this pair via `value.start()` even
+          // `store.animate()` took this pair through `value.start()` even
           // though motion resolved it instantly with nothing to hand back.
-          // Claiming it anyway notifies whoever held it before; this pass
-          // has nothing left to wait on for this key.
+          // Claiming it anyway notifies whoever held it before. This pass has
+          // nothing left to wait on for this key.
           claim(element, change.key, () => undefined);
           continue;
         }
