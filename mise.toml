@@ -1,0 +1,55 @@
+[tools]
+bun = "1.4.2"
+node = "24.22.0"
+
+[tasks.install]
+description = "Install dependencies from bun.lock"
+run = "bun install --frozen-lockfile"
+
+[tasks."install:browsers"]
+description = "Install the Chromium that the site tests drive"
+run = "bunx playwright install ${CI:+--with-deps} chromium"
+dir = "site"
+
+[tasks.lint]
+description = "Check code and Markdown without writing"
+run = ["bunx oxlint -c .oxlintrc.json --deny-warnings", "bunx oxfmt --check"]
+
+[tasks.fix]
+description = "Apply safe lint fixes and format code and Markdown"
+run = ["bunx oxlint -c .oxlintrc.json --fix", "bunx oxfmt"]
+
+[tasks.typecheck]
+description = "Type-check the library, its tests and the site"
+run = ["bunx tsc --noEmit", "bun run --filter solid-motion-site typecheck"]
+
+[tasks.test]
+description = "Run the unit tests"
+run = "bunx vitest run"
+
+[tasks.build]
+description = "Write the type declarations to dist"
+run = "bunx tsc -p tsconfig.build.json"
+
+[tasks."check:site"]
+description = "Build the site and run its browser tests"
+depends = ["install:browsers"]
+run = "bun run --filter solid-motion-site test"
+
+[tasks.check]
+description = "Run every check, as CI does"
+depends = ["lint", "typecheck", "test", "build", "check:site"]
+
+[tasks."release:tag"]
+description = "Fail when the pushed tag differs from the package.json version"
+run = '''
+version=$(bun -e 'console.log(require("./package.json").version)')
+if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+  echo "Tag $GITHUB_REF_NAME != package.json $version"
+  exit 1
+fi
+'''
+
+[tasks.publish]
+description = "Publish the package to npm (builds dist through prepack)"
+run = "npm publish --access public"
