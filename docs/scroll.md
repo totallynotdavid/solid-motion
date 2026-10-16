@@ -43,12 +43,12 @@ server there is nothing to measure and the values stay at 0.
 
 `createScroll({ container, target, offset, trackContentSize })`
 
-| Option             | Default            | Meaning                                                         |
-| ------------------ | ------------------ | --------------------------------------------------------------- |
-| `container`        | The page           | An accessor for the element that scrolls.                       |
-| `target`           | The container      | An accessor for the element whose position is tracked.          |
-| `offset`           | `[[0, 0], [1, 1]]` | When progress is 0 and when it is 1.                            |
-| `trackContentSize` | `false`            | Check the scroll size on every frame, to catch growing content. |
+| Option             | Default             | Meaning                                                         |
+| ------------------ | ------------------- | --------------------------------------------------------------- |
+| `container`        | The page            | An accessor for the element that scrolls.                       |
+| `target`           | The container       | An accessor for the element whose position is tracked.          |
+| `offset`           | `scrollOffsets.all` | The points progress passes through. See [offsets](#offsets).    |
+| `trackContentSize` | `false`             | Check the scroll size on every frame, to catch growing content. |
 
 `container` and `target` are accessors, because a ref is set after the component
 runs. Until they return an element, nothing is measured.
@@ -70,12 +70,39 @@ function Panel() {
 }
 ```
 
-`offset` is two points, `[start, end]`. Each point is `[target, container]`, a
-position along each element from 0 (its start) to 1 (its end). Progress is 0
-when the first point's target position meets its container position, and 1 for
-the second point. The default `[[0, 0], [1, 1]]` is 0 when the target's start
-meets the container's start, and 1 when their ends meet. For the page, that is 0
-at the top and 1 at the bottom.
+## Offsets
+
+`offset` lists the points progress passes through. Progress is 0 at the first
+point, 1 at the last, and the points in between are spaced evenly. Each point
+says where an edge of the target meets an edge of the container:
+
+| Point              | Meaning                                                       |
+| ------------------ | ------------------------------------------------------------- |
+| `"start end"`      | The target's start meets the container's end.                 |
+| `["start", "end"]` | The same, written as a pair.                                  |
+| `[0, 1]`           | The same, with numbers. 0 is the start, 1 is the end.         |
+| `"end"` or `0.5`   | The same edge of both elements.                               |
+| `"100px"`          | 100px past the target's start, against the container's start. |
+
+An edge is `"start"`, `"center"`, `"end"`, a number from 0 to 1, or a length:
+`"px"`, `"%"` of the element, `"vw"` or `"vh"`.
+
+```tsx
+// `node` is an accessor for the element. Progress is 0 as it starts to enter
+// and 1 once it has fully entered.
+createScroll({ target: node, offset: ["start end", "end end"] });
+```
+
+The common ranges are presets in `scrollOffsets`:
+
+| Preset                | 0 when                                          | 1 when                                        |
+| --------------------- | ----------------------------------------------- | --------------------------------------------- |
+| `scrollOffsets.enter` | The target's start meets the container's end.   | The target's end meets the container's end.   |
+| `scrollOffsets.exit`  | The target's start meets the container's start. | The target's end meets the container's start. |
+| `scrollOffsets.any`   | The first pixel of the target is visible.       | The last pixel has gone.                      |
+| `scrollOffsets.all`   | The starts meet. The default.                   | The ends meet.                                |
+
+For the page, `all` is 0 at the top and 1 at the bottom.
 
 Set `trackContentSize` when the content of a fixed-height container grows after
 the first measurement, for example when images load. A container that resizes is
