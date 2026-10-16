@@ -4,7 +4,12 @@ import {
   cancelFrame,
   frame,
   isMotionValue,
+  mapValue,
+  transformValue,
   type FrameData,
+  type MapInputRange,
+  type MotionValueEventCallbacks,
+  type TransformOptions,
 } from "motion-dom";
 import { createEffect, onCleanup, untrack } from "solid-js";
 
@@ -94,6 +99,86 @@ export function createTime(): MotionValue<number> {
   onCleanup(() => cancelFrame(tick));
 
   return value;
+}
+
+/**
+ * A value derived from other motion values, recomputed on the frame loop.
+ * The range form maps a numeric value from one range to another. The function
+ * form tracks every motion value it reads with `get()`. Solid signals read
+ * inside it are not tracked: put them in an accessor in `style`.
+ */
+export function createTransform<O>(
+  input: MotionValue<number>,
+  inputRange: MapInputRange,
+  outputRange: O[],
+  options?: TransformOptions<O>,
+): MotionValue<O>;
+export function createTransform<O>(compute: () => O): MotionValue<O>;
+export function createTransform<O>(
+  inputOrCompute: MotionValue<number> | (() => O),
+  inputRange?: MapInputRange,
+  outputRange?: O[],
+  options?: TransformOptions<O>,
+): MotionValue<O> {
+  const value =
+    typeof inputOrCompute === "function"
+      ? transformValue(inputOrCompute)
+      : mapValue(inputOrCompute, inputRange!, outputRange!, options);
+  onCleanup(() => value.destroy());
+  return value;
+}
+
+/**
+ * A string value built from motion values, for compound properties such as
+ * `filter`. A tagged template: motion values in it are tracked, plain strings
+ * and numbers pass through.
+ * Example: createMotionTemplate`blur(${radius}px)`
+ */
+export function createMotionTemplate(
+  fragments: TemplateStringsArray,
+  ...values: Array<MotionValue<string> | MotionValue<number> | string | number>
+): MotionValue<string> {
+  return createTransform(() =>
+    fragments.reduce((result, fragment, index) => {
+      const insert = values[index - 1];
+      const text = isMotionValue(insert) ? insert.get() : insert;
+      return result + text + fragment;
+    }),
+  );
+}
+
+/**
+ * Runs `callback` whenever the value raises `event`, and stops with the owner.
+ * `change` fires on every update; the animation events fire as an animation
+ * driving the value starts, completes or is cancelled.
+ */
+export function createMotionValueEvent<
+  V,
+  E extends keyof MotionValueEventCallbacks<V>,
+>(
+  value: MotionValue<V>,
+  event: E,
+  callback: MotionValueEventCallbacks<V>[E],
+): void {
+  onCleanup(value.on(event, callback));
+}
+
+/**
+ * Calls `callback` on every animation frame until the owner is cleaned up.
+ * `time` is milliseconds since the first frame and `delta` since the previous
+ * one.
+ */
+export function createAnimationFrame(
+  callback: (time: number, delta: number) => void,
+): void {
+  let start: number | undefined;
+  const tick = ({ timestamp, delta }: FrameData) => {
+    start ??= timestamp;
+    callback(timestamp - start, delta);
+  };
+
+  frame.update(tick, true);
+  onCleanup(() => cancelFrame(tick));
 }
 
 function read<T extends string | number>(source: MotionSource<T>): T {

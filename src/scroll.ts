@@ -1,25 +1,18 @@
-import {
-  MotionValue,
-  cancelFrame,
-  frame,
-  interpolate,
-  resize,
-} from "motion-dom";
+import { MotionValue, cancelFrame, frame, resize } from "motion-dom";
 import { createEffect, onCleanup, type Accessor } from "solid-js";
 
-/**
- * Progress endpoints as `[target, container]` normalized coordinates.
- * `[0, 0]` starts when both elements start, and `[1, 1]` ends when both end.
- */
-export type ScrollOffset = readonly [
-  start: readonly [target: number, container: number],
-  end: readonly [target: number, container: number],
-];
+import {
+  resolveScrollProgress,
+  scrollOffsets,
+  type ScrollOffset,
+} from "./scroll-offset";
 
-const defaultOffset: ScrollOffset = [
-  [0, 0],
-  [1, 1],
-];
+export {
+  scrollOffsets,
+  type ScrollEdge,
+  type ScrollOffset,
+  type ScrollOffsetPoint,
+} from "./scroll-offset";
 
 export interface ScrollOptions {
   /**
@@ -29,6 +22,10 @@ export interface ScrollOptions {
   container?: Accessor<HTMLElement | undefined>;
   /** The element to track. Defaults to the container. */
   target?: Accessor<HTMLElement | undefined>;
+  /**
+   * The points progress passes through. Defaults to `scrollOffsets.all`: 0
+   * when the target's start meets the container's start, 1 when the ends meet.
+   */
   offset?: ScrollOffset;
   /**
    * Frame-polls the container's scrollWidth/scrollHeight to catch content
@@ -64,7 +61,7 @@ export function createScroll(options: ScrollOptions = {}): ScrollValues {
     scrollYProgress.destroy();
   });
 
-  const offset = options.offset ?? defaultOffset;
+  const offset = options.offset ?? scrollOffsets.all;
   const trackContentSize = options.trackContentSize ?? false;
 
   createEffect(
@@ -213,12 +210,12 @@ function measureAxis(
       : target.clientWidth;
   const inset = isSelf ? 0 : axisInset(target, container, axis);
 
-  const points = offset.map(
-    ([targetPoint, containerPoint]) =>
-      inset + targetPoint * targetLength - containerPoint * containerLength,
-  );
-
-  const progress = interpolate(points, [0, 1], { clamp: true })(current);
+  const progress = resolveScrollProgress(offset, {
+    position: current,
+    containerLength,
+    targetLength,
+    targetInset: inset,
+  });
   return { current, progress };
 }
 

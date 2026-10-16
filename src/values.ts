@@ -25,8 +25,13 @@ import {
   createProjection,
   type LayoutOptions,
   type LayoutTiming,
+  type Projection,
 } from "./projection";
 import { attributeName } from "./svg";
+import type { TransformTemplate } from "./types";
+
+/** The element's current `transformTemplate`, read on every paint. */
+export type TemplateSource = () => TransformTemplate | undefined;
 
 /**
  * The animated properties of one element, one `MotionValue` each.
@@ -60,6 +65,14 @@ export interface ValueStore {
   observe(listener: (latest: Record<string, string | number>) => void): void;
   /** Updates layout timing. Ignored when the element has no layout. */
   setLayoutTiming(timing: LayoutTiming): void;
+  /**
+   * The value behind one property, created on first use. This is the same value
+   * `animate` drives, so writing it moves the element and stops any animation
+   * the store started on it.
+   */
+  value(key: string): MotionValue;
+  /** The element's layout projection, when it asked for one. */
+  readonly projection: Projection | undefined;
   dispose(): void;
 }
 
@@ -83,11 +96,18 @@ export function sharedValueStore(
   initialValues: Record<string, string | number>,
   bound: ReadonlyMap<string, MotionValue>,
   layout?: LayoutOptions,
+  template?: TemplateSource,
 ): ValueStore {
   const existing = sharedStores.get(element);
   if (existing) return existing;
 
-  const store = createValueStore(element, initialValues, bound, layout);
+  const store = createValueStore(
+    element,
+    initialValues,
+    bound,
+    layout,
+    template,
+  );
   sharedStores.set(element, store);
   return store;
 }
@@ -130,6 +150,8 @@ export function createValueStore(
   bound: ReadonlyMap<string, MotionValue>,
   /** Present when the element asked for `layout` or `layoutId`. */
   layout?: LayoutOptions,
+  /** Present when the element has a `transformTemplate` to apply. */
+  template?: TemplateSource,
 ): ValueStore {
   const values = new Map<string, MotionValue>();
   const bases = new Map<string, string | number>();
@@ -155,15 +177,21 @@ export function createValueStore(
       ? createProjection(element, latestValues, renderState, layout)
       : undefined;
 
+  // A template has to see every transform value together, so the element paints
+  // its whole style on the frame, as a projecting element does. Without one,
+  // motion-dom's effects write each value as it changes.
+  const paintsItself =
+    projection !== undefined ||
+    (template !== undefined && isHTMLElement(element));
+
   /** Writes current values with any projection transform composed on top. */
   const paint = projection
     ? projection.render
     : () => {
-        buildHTMLStyles(renderState, latestValues);
+        buildHTMLStyles(renderState, latestValues, template?.());
         renderHTML(element as HTMLElement, renderState);
       };
 
-  // Projection renders HTML values itself. Other nodes use motion-dom effects.
   const bindToDom = isHTMLElement(element) ? styleEffect : svgEffect;
 
   const attach = (key: string, value: MotionValue, base: string | number) => {
@@ -173,11 +201,11 @@ export function createValueStore(
     unbind.push(
       value.on("change", (current: string | number) => {
         latestValues[key] = current;
-        if (projection) frame.render(paint);
+        if (paintsItself) frame.render(paint);
         observer?.(latestValues);
       }),
     );
-    if (!projection) unbind.push(bindToDom(element, { [key]: value }));
+    if (!paintsItself) unbind.push(bindToDom(element, { [key]: value }));
 
     const current = value.get() as string | number | undefined;
     if (current !== undefined) latestValues[key] = current;
@@ -281,6 +309,10 @@ export function createValueStore(
     setLayoutTiming(timing) {
       projection?.setTiming(timing);
     },
+
+    value: ensure,
+
+    projection,
 
     dispose() {
       projection?.dispose();
