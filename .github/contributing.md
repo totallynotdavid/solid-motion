@@ -79,3 +79,7 @@ bunx prettier --print-width 80 --prose-wrap always --write docs/animating-elemen
 ```
 
 For the code layout, read [Architecture](../docs/architecture.md).
+
+## Releases
+
+Maintainers publish with a tag. See [Releasing](releasing.md).
