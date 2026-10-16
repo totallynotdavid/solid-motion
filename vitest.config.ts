@@ -1,5 +1,5 @@
 import solid from "@solidjs/vite-plugin";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [solid()],
@@ -7,5 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // The site's specs are Playwright specs. `site/` runs them.
+    exclude: [...configDefaults.exclude, "site/**"],
   },
 });
