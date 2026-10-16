@@ -21,8 +21,39 @@ It runs these steps in order, and stops at the first one that fails:
 | `bun run check:format` | `oxfmt --check` for code, `prettier --check` for docs. |
 | `bun run test`         | `vitest run`.                                          |
 | `bun run build`        | `tsc` writes the declarations to `dist`.               |
+| `bun run check:site`   | Type-checks, builds and tests the site (see below).    |
 
 `bun run format` fixes the formatting.
+
+## Site
+
+`site/` is the documentation site. It renders the manual from `docs/` and runs
+each demo twice, once with solid-motion and once with `motion/react`, with the
+same controls.
+
+```sh
+bun run --filter solid-motion-site dev    # dev server on localhost:5173
+bun run --filter solid-motion-site build  # static files in site/dist
+```
+
+The tests drive every demo in Chromium. Install the browser once:
+
+```sh
+cd site && bunx playwright install chromium
+```
+
+A demo is three files in `site/src/demos`: `<name>.config.ts` for its
+parameters, `<name>.tsx` for the solid-motion version and its code, and
+`<name>.react.tsx` for the `motion/react` twin. Register it in
+`site/src/demos/index.ts` and add a probe for it in `site/tests/probes.ts`. A
+probe says where the demo ends and which control changes the result. A test
+fails when a demo on a page has no probe.
+
+When solid-motion cannot do what a demo shows, leave out `Solid` and set `gap`
+to an entry in `site/src/gaps.ts`. The page then marks the solid-motion side
+"not yet", and the tests drive only the `motion/react` side. When the capability
+ships, delete the entry, add `Solid` and drop `gap`. The tests then drive both
+sides with the same probe.
 
 ## Tests
 
