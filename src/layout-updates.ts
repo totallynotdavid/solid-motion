@@ -4,6 +4,7 @@ import {
   type IProjectionNode,
   type Measurements,
 } from "motion-dom";
+import { flush } from "solid-js";
 
 /** Projection lifecycle supplied by an element. */
 export interface LayoutHost {
@@ -11,6 +12,11 @@ export interface LayoutHost {
   create(parent: IProjectionNode | undefined): IProjectionNode;
   /** Whether changes should apply immediately. */
   instant(): boolean;
+  /**
+   * Whether the node re-measures only when `invalidateLayout` is called for it,
+   * not for every mutation near it.
+   */
+  gated(): boolean;
 }
 
 const nodes = new WeakMap<HTMLElement, IProjectionNode>();
@@ -19,8 +25,12 @@ const mounted = new Set<IProjectionNode>();
 const pending = new Map<HTMLElement, LayoutHost>();
 /** Nodes that relevant mutations may have moved since the last commit. */
 const touched = new Set<IProjectionNode>();
+/** Nodes asked to re-measure, which a gated node needs to take a snapshot. */
+const invalidated = new Set<IProjectionNode>();
 /** Elements whose inline style this package writes on the animation frame. */
 const painted = new WeakSet<Element>();
+/** Whether the next commit applies its changes without animating them. */
+let instantNext = false;
 let scheduled = false;
 let watcher: MutationObserver | undefined;
 
@@ -40,6 +50,7 @@ export function dropLayoutNode(element: HTMLElement): void {
   hosts.delete(node);
   mounted.delete(node);
   touched.delete(node);
+  invalidated.delete(node);
   if (mounted.size === 0) watcher?.disconnect();
 
   // A follow node may share its animation through `resumingFrom`; only the lead
@@ -90,6 +101,8 @@ function commit() {
     for (const node of mounted) snapshot(node);
   }
   touched.clear();
+  invalidated.clear();
+  instantNext = false;
 
   // Snapshot before mounting pending nodes so shared elements use the outgoing
   // member's previous box.
@@ -104,9 +117,11 @@ function commit() {
 function snapshot(node: IProjectionNode) {
   if (node.snapshot || !node.instance || !node.layout) return;
 
+  if (hosts.get(node)?.gated() && !invalidated.has(node)) return;
+
   // An instant change has no snapshot, so the projection engine creates no
   // layout animation.
-  if (hosts.get(node)?.instant()) {
+  if (instantNext || hosts.get(node)?.instant()) {
     node.isLayoutDirty = true;
     return;
   }
@@ -224,6 +239,46 @@ export function noteStyleChange(element: Element): void {
   for (const node of mounted) {
     if (movedBy(node, element)) touched.add(node);
   }
+  scheduleCommit();
+}
+
+/**
+ * Runs `update` and applies the layout changes it makes at once, without
+ * animating them.
+ */
+export function instantLayoutTransition(update: () => void): void {
+  instantNext = true;
+  try {
+    update();
+    // The DOM has to change before the commit that clears the flag.
+    flush();
+  } finally {
+    scheduleCommit();
+  }
+}
+
+/**
+ * Forgets every measurement, so the next layout is a fresh baseline rather than
+ * the end of an animation. For a DOM replaced wholesale, such as a page change.
+ */
+export function resetLayout(): void {
+  const root = anyRoot();
+  if (!root) return;
+
+  root.resetTree();
+  for (const node of mounted) node.isLayoutDirty = true;
+  scheduleCommit();
+}
+
+/**
+ * Asks an element to re-measure at the next commit, for a change that no
+ * document mutation announces, such as one a dependency signal reports.
+ */
+export function invalidateLayout(element: HTMLElement): void {
+  const node = nodes.get(element);
+  if (!node) return;
+  invalidated.add(node);
+  touched.add(node);
   scheduleCommit();
 }
 
