@@ -10,6 +10,7 @@ import {
   createMotion,
   createInView,
   createMotionValue,
+  createVelocity,
   createWillChange,
   MotionConfig,
   motion,
@@ -282,12 +283,51 @@ describe("AnimatePresenceList", () => {
     await advance(20);
     expect(container.querySelector('[data-id="one"]')).toBeNull();
   });
+
+  it("removes items without a Solid read warning", async () => {
+    // The row leaves from a microtask, outside any tracking scope.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const [items, setItems] = createSignal([{ id: "one" }, { id: "two" }]);
+    const { container } = render(() => (
+      <AnimatePresenceList each={items()} getKey={(item) => item.id}>
+        {(item) => <motion.div data-id={item().id} />}
+      </AnimatePresenceList>
+    ));
+
+    setItems([{ id: "two" }]);
+    await advance(20);
+
+    expect(container.querySelector('[data-id="one"]')).toBeNull();
+    expect(container.querySelector('[data-id="two"]')).toBeTruthy();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
 });
 
 const Theme = createContext("unset");
 
 describe("AnimatePresence", () => {
   afterEach(() => document.body.replaceChildren());
+
+  it("removes a subtree with no exit without a Solid read warning", async () => {
+    // The subtree leaves from a microtask, outside any tracking scope.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const [open, setOpen] = createSignal(true);
+    const { container } = render(() => (
+      <AnimatePresence when={open()}>
+        {() => <motion.div class="panel" animate={{ opacity: 1 }} />}
+      </AnimatePresence>
+    ));
+    await advance(300);
+
+    setOpen(false);
+    flush();
+    await advance(20);
+
+    expect(container.querySelector(".panel")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
 
   it("keeps a conditional subtree mounted while it animates out", async () => {
     const [open, setOpen] = createSignal(true);
@@ -697,6 +737,21 @@ describe("style values", () => {
     // `none` until something else moved. The inline style is what closes that.
     const element = container.querySelector("div") as HTMLElement;
     expect(element.style.transform).toBe("translateX(25px)");
+  });
+
+  it("types a numeric literal source as a number value", () => {
+    const x = createMotionValue(0);
+    const label = createMotionValue("left");
+
+    // `createVelocity` takes a `MotionValue<number>`; a value typed as the
+    // literal `0` would not compile here.
+    const speed = createVelocity(x);
+    x.set(10);
+    label.set("right");
+
+    expect(speed.get()).toBe(0);
+    expect(x.get()).toBe(10);
+    expect(label.get()).toBe("right");
   });
 
   it("animates the caller's own value rather than a copy of it", async () => {
@@ -1936,6 +1991,36 @@ describe("whileInView", () => {
     expect(parent.style.opacity).toBe("0");
     expect(child.style.opacity).toBe("0");
   });
+
+  it.each(["beforeChildren", "afterChildren"] as const)(
+    "sequences a mount animation with %s without a Solid read warning",
+    async (when) => {
+      // The sequencer decides whether to wait when a pass starts, which is
+      // outside any tracking scope. Solid warns about a reactive read there.
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const variants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
+
+      const { container } = render(() => (
+        <motion.div
+          variants={variants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.2, when }}
+        >
+          <motion.div variants={variants} transition={{ duration: 0.2 }} />
+        </motion.div>
+      ));
+      await advance(700);
+
+      const [parent, child] = [
+        ...container.querySelectorAll("div"),
+      ] as HTMLElement[];
+      expect(parent.style.opacity).toBe("1");
+      expect(child.style.opacity).toBe("1");
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    },
+  );
 
   it("keeps a sequenced exit inside its presence boundary until it is done", async () => {
     // The gate lives inside `run`, so a pass waiting its turn is still the
