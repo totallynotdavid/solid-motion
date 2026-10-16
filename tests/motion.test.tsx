@@ -1653,7 +1653,7 @@ describe("gestures", () => {
     const { container } = render(() => (
       <motion.div
         whileHover={{ scale: 1.2 }}
-        whilePress={{ scale: 0.8 }}
+        whileTap={{ scale: 0.8 }}
         transition={{ duration: 0.05 }}
       />
     ));
@@ -1750,6 +1750,33 @@ describe("variant propagation", () => {
         .opacity;
     expect(opacityOf("inherits")).toBe("1");
     expect(opacityOf("overrides")).toBe("0");
+  });
+
+  it("ignores the parent's labels under inherit={false}", async () => {
+    const { container } = render(() => (
+      <motion.div animate="visible" variants={{ visible: {} }}>
+        <motion.span
+          data-i="follows"
+          variants={fade}
+          initial="hidden"
+          transition={{ duration: 0.05 }}
+        />
+        <motion.span
+          data-i="apart"
+          inherit={false}
+          variants={fade}
+          initial="hidden"
+          transition={{ duration: 0.05 }}
+        />
+      </motion.div>
+    ));
+
+    await advance(200);
+    const opacityOf = (name: string) =>
+      (container.querySelector(`[data-i="${name}"]`) as HTMLElement).style
+        .opacity;
+    expect(opacityOf("follows")).toBe("1");
+    expect(opacityOf("apart")).toBe("0");
   });
 });
 
