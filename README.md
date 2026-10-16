@@ -68,16 +68,16 @@ again each time a signal read inside `animate` changes.
 
 - `initial`, `animate` and `exit` targets, with keyframes and `"auto"` sizes
 - Variants, with stagger and parent-child ordering
-- Hover, press, focus and in-view states
-- Exit animations with `AnimatePresence`
-- Layout and shared-layout animations
-- Motion values, scroll-linked values and velocity
+- Hover, tap, focus, pan and in-view states, with callbacks
+- Drag with constraints, momentum and drag controls, and `Reorder` lists
+- Animation controls for starting an animation from an event handler
+- Exit animations with `AnimatePresence`, including `popLayout`
+- Layout and shared-layout animations, with `LayoutGroup`
+- Motion values, derived values, scroll-linked values and velocity
 - SVG geometry and path drawing
 - Reduced-motion support and a switch that turns all animation off
 - Server rendering: the first paint is in the HTML
 - `animate()` for elements you do not render yourself
-
-Drag is not implemented.
 
 ## Manual
 

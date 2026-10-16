@@ -55,6 +55,8 @@ The children have no `initial` or `animate`. They read `"hidden"` and
 `"visible"` from the `ul`, and look them up in `item`.
 
 - A prop on the child wins over the name it would inherit.
+- `inherit={false}` stops the child following the names above it at all. It is
+  read once, when the element is created.
 - An inline target is never inherited. Only names are, because a name means
   something only next to its own `variants` map.
 - `custom` is inherited the same way. An element uses its own `custom`, then the

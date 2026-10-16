@@ -10,11 +10,12 @@ import { MotionConfig, motion } from "@totallynotdavid/solid-motion";
 </MotionConfig>;
 ```
 
-| Prop             | Default   | Meaning                                                   |
-| ---------------- | --------- | --------------------------------------------------------- |
-| `transition`     | none      | The transition for any element that sets none of its own. |
-| `reducedMotion`  | `"never"` | `"never"`, `"always"` or `"user"`. See below.             |
-| `skipAnimations` | `false`   | Jump every animation to its target.                       |
+| Prop                 | Default   | Meaning                                                   |
+| -------------------- | --------- | --------------------------------------------------------- |
+| `transition`         | none      | The transition for any element that sets none of its own. |
+| `reducedMotion`      | `"never"` | `"never"`, `"always"` or `"user"`. See below.             |
+| `skipAnimations`     | `false`   | Jump every animation to its target.                       |
+| `transformPagePoint` | none      | Maps pointer coordinates. See below.                      |
 
 A `MotionConfig` inside another one overrides the props it sets and inherits the
 rest. `useMotionConfig()` returns the current values.
@@ -47,6 +48,35 @@ the element or target sets its own `transition`.
 <MotionConfig skipAnimations>
   <App />
 </MotionConfig>
+```
+
+## transformPagePoint
+
+`transformPagePoint` receives a pointer position in page coordinates and returns
+the position in the space the element lives in. [Drag](drag.md) and
+[pan](gestures.md#pan) read the pointer through it. Set it when a container is
+scaled or rotated by a CSS transform, so the element follows the pointer.
+
+```tsx
+<MotionConfig transformPagePoint={({ x, y }) => ({ x: x / 2, y: y / 2 })}>
+  <motion.div drag />
+</MotionConfig>
+```
+
+## useReducedMotionConfig
+
+`useReducedMotionConfig()` returns an accessor that is `true` while reduced
+motion is in effect for this part of the tree: the nearest `MotionConfig`'s
+`reducedMotion`, resolved against the device preference when it is `"user"`.
+Unlike `useReducedMotion`, it follows `"always"` and `"never"`.
+
+```tsx
+import { useReducedMotionConfig } from "@totallynotdavid/solid-motion";
+
+function Parallax() {
+  const reduced = useReducedMotionConfig();
+  return <p>{reduced() ? "Still" : "Moving"}</p>;
+}
 ```
 
 ## useReducedMotion
