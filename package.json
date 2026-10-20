@@ -43,7 +43,7 @@
     "prepack": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "motion-dom": "^14.3.0"
+    "motion-dom": "^14.4.0"
   },
   "devDependencies": {
     "@solidjs/testing-library": "^1.0.0-beta.3",
