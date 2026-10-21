@@ -6,8 +6,10 @@ import type { Plugin } from "vite";
 import { manualIndex, readManual } from "./manual.ts";
 
 /**
- * The site routes on the History API. A static host serves `/variants` only if
- * a file answers it, so the build copies the entry page to every route.
+ * The site routes on the History API. A static host serves `/docs/variants`
+ * only if a file answers it. The build copies the entry page to
+ * `docs/variants.html` for the URL without a slash, and to
+ * `docs/variants/index.html` for the URL with one.
  */
 export function staticRoutes(): Plugin {
   let outDir = "";
@@ -22,9 +24,10 @@ export function staticRoutes(): Plugin {
     closeBundle() {
       const entry = join(outDir, "index.html");
       for (const page of readManual(index)) {
-        const dir = join(outDir, page.slug);
-        mkdirSync(dir, { recursive: true });
-        copyFileSync(entry, join(dir, "index.html"));
+        const route = join(outDir, "docs", page.slug);
+        mkdirSync(route, { recursive: true });
+        copyFileSync(entry, `${route}.html`);
+        copyFileSync(entry, join(route, "index.html"));
       }
       copyFileSync(entry, join(outDir, "404.html"));
     },

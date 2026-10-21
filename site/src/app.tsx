@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from "solid-js";
 
+import { base, pageSlug, pageUrl } from "../base";
 import { pages } from "./content/pages";
 import { DocPage } from "./pages/doc-page";
 import { Landing } from "./pages/landing";
@@ -10,12 +11,12 @@ const repository = "https://github.com/totallynotdavid/solid-motion";
 function Header() {
   return (
     <header class="site-header">
-      <a class="brand" href="/">
+      <a class="brand" href={base}>
         <span class="brand-mark" aria-hidden="true" />
         solid-motion
       </a>
       <nav aria-label="Site">
-        <a href={`/${pages[0]?.slug ?? ""}`}>Manual</a>
+        <a href={pageUrl(pages[0]?.slug ?? "")}>Manual</a>
         <a href={repository} rel="noreferrer">
           GitHub
         </a>
@@ -25,8 +26,11 @@ function Header() {
 }
 
 export function App() {
-  const slug = createMemo(() => path().replace(/^\/|\/$/g, ""));
-  const page = createMemo(() => pages.find((entry) => entry.slug === slug()));
+  const home = createMemo(() => path().replace(/\/?$/, "/") === base);
+  const page = createMemo(() => {
+    const slug = pageSlug(path());
+    return pages.find((entry) => entry.slug === slug);
+  });
 
   return (
     <>
@@ -34,7 +38,7 @@ export function App() {
         Skip to content
       </a>
       <Header />
-      <Show when={slug() !== ""} fallback={<Landing />}>
+      <Show when={!home()} fallback={<Landing />}>
         <Show when={page()} fallback={<NotFound />}>
           {(entry) => <DocPage page={entry()} />}
         </Show>
@@ -52,7 +56,7 @@ function NotFound() {
         <For each={pages}>
           {(entry) => (
             <li>
-              <a href={`/${entry.slug}`}>{entry.title}</a>
+              <a href={pageUrl(entry.slug)}>{entry.title}</a>
             </li>
           )}
         </For>

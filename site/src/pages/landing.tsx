@@ -1,6 +1,7 @@
 import { MotionConfig, motion } from "@totallynotdavid/solid-motion";
 import { createSignal, Show } from "solid-js";
 
+import { pageUrl } from "../../base";
 import { pages } from "../content/pages";
 import { Code, CopyButton } from "../playground/code";
 import { Tiles } from "./hero-example";
@@ -68,10 +69,10 @@ export function Landing() {
             <CopyButton text={() => install} label="Copy the install command" />
           </motion.div>
           <motion.div class="landing-actions" variants={rise}>
-            <a class="button" href={`/${pages[0]?.slug ?? ""}`}>
+            <a class="button" href={pageUrl(pages[0]?.slug ?? "")}>
               Read the manual
             </a>
-            <a class="link-quiet" href="/gestures">
+            <a class="link-quiet" href={pageUrl("gestures")}>
               Compare with motion/react
             </a>
           </motion.div>

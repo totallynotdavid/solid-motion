@@ -1,5 +1,6 @@
 import { For } from "solid-js";
 
+import { pageUrl } from "../../base";
 import { pages } from "../content/pages";
 
 export function Sidebar(props: { current: string }) {
@@ -11,12 +12,8 @@ export function Sidebar(props: { current: string }) {
           {(entry) => (
             <li>
               <a
-                href={`/${entry.slug}`}
-                aria-current={
-                  props.current.replace(/^\/|\/$/g, "") === entry.slug
-                    ? "page"
-                    : undefined
-                }
+                href={pageUrl(entry.slug)}
+                aria-current={props.current === entry.slug ? "page" : undefined}
               >
                 {entry.title}
               </a>

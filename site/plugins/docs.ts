@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { Marked, type Tokens } from "marked";
 import type { Plugin } from "vite";
 
+import { pageUrl } from "../base.ts";
 import type { DocModule, PageEntry } from "../src/content/types.ts";
 import { highlight } from "../src/shared/highlight.ts";
 import { manualIndex, readManual } from "./manual.ts";
@@ -31,7 +32,9 @@ function rewriteHref(href: string, pages: PageEntry[]): string {
   if (!match) return href;
   const [, name = "", hash = ""] = match;
   const page = pages.find((entry) => entry.slug === name);
-  return page ? `/${page.slug}${hash}` : `${sourceUrl}${name}.md${hash}`;
+  return page
+    ? `${pageUrl(page.slug)}${hash}`
+    : `${sourceUrl}${name}.md${hash}`;
 }
 
 function render(markdown: string, pages: PageEntry[]): DocModule {

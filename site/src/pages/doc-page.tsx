@@ -1,9 +1,9 @@
 import { createEffect, For, Show } from "solid-js";
 
+import { pageUrl } from "../../base";
 import { docFor } from "../content/docs";
 import { pages, type PageEntry } from "../content/pages";
 import { demos } from "../demos";
-import { path } from "../router";
 import { Sidebar } from "./sidebar";
 
 const sourceUrl =
@@ -36,7 +36,7 @@ export function DocPage(props: { page: PageEntry }) {
 
   return (
     <div class="doc-layout">
-      <Sidebar current={path()} />
+      <Sidebar current={props.page.slug} />
       <main id="content" class="doc">
         <Show when={doc()}>
           {(module) => (
@@ -62,7 +62,7 @@ export function DocPage(props: { page: PageEntry }) {
           <nav aria-label="Pages">
             <Show when={previous()}>
               {(entry) => (
-                <a href={`/${entry().slug}`} rel="prev">
+                <a href={pageUrl(entry().slug)} rel="prev">
                   <span>Previous</span>
                   {entry().title}
                 </a>
@@ -70,7 +70,7 @@ export function DocPage(props: { page: PageEntry }) {
             </Show>
             <Show when={next()}>
               {(entry) => (
-                <a href={`/${entry().slug}`} rel="next">
+                <a href={pageUrl(entry().slug)} rel="next">
                   <span>Next</span>
                   {entry().title}
                 </a>
