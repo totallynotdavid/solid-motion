@@ -40,7 +40,18 @@
     "access": "public"
   },
   "scripts": {
-    "prepack": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "build:site": "cd site && bunx vite build",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run build && bun run install:browsers && bun run test:site",
+    "fix": "oxlint -c .oxlintrc.json --fix && oxfmt",
+    "install:browsers": "cd site && bunx playwright install ${CI:+--with-deps} chromium",
+    "lint": "oxlint -c .oxlintrc.json --deny-warnings && oxfmt --check",
+    "prepack": "tsc -p tsconfig.build.json",
+    "release:publish": "npm publish --access public",
+    "release:tag": "node scripts/release-tag.js",
+    "test": "vitest run",
+    "test:site": "cd site && bunx vite build && bunx playwright test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p site"
   },
   "dependencies": {
     "motion-dom": "^14.4.0"
