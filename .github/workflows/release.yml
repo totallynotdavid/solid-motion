@@ -24,11 +24,11 @@ jobs:
 
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5
 
-      - run: mise run release:tag
+      - run: bun run release:tag
 
-      - run: mise run install
+      - run: bun install --frozen-lockfile
 
-      - run: mise run check
+      - run: bun run check
 
   publish:
     name: Publish to npm
@@ -51,11 +51,11 @@ jobs:
 
       - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5
 
-      - run: mise run install
+      - run: bun install --frozen-lockfile
 
       # prepack builds dist. Trusted publishing needs npm 11.5.1 or later.
       # The Node version pinned in mise.toml includes it.
-      - run: mise run publish
+      - run: bun run release:publish
 
   github:
     name: GitHub release
