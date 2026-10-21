@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { pageUrl } from "../base.ts";
 import { watch, type Reading } from "./measure.ts";
 import { probes, type Probe, type Setting } from "./probes.ts";
 
@@ -23,7 +24,7 @@ const paneOf = (page: Page, probe: Probe, side: Side) =>
   page.locator(`${demoRoot(probe)} [data-pane="${side}"]`);
 
 async function open(page: Page, probe: Probe): Promise<Side[]> {
-  await page.goto(`/${probe.page}`);
+  await page.goto(pageUrl(probe.page));
   await page.locator(demoRoot(probe)).scrollIntoViewIfNeeded();
   return waitReady(page, probe);
 }

@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+import { base } from "../base.ts";
+
 test.use({ viewport: { width: 1440, height: 900 } });
 
 test("the landing page shows the package in motion within one screen", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto(base);
   const tiles = page.locator(".tile");
   await expect(tiles).toHaveCount(12);
 
@@ -30,7 +32,7 @@ test("the landing page shows the package in motion within one screen", async ({
 test("hovering a tile scales it, and Replay plays the entrance again", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto(base);
   const first = page.locator(".tile").first();
   await expect
     .poll(() => first.evaluate((e) => getComputedStyle(e).opacity))
@@ -55,7 +57,7 @@ test("hovering a tile scales it, and Replay plays the entrance again", async ({
 
 test("the install command copies", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/");
+  await page.goto(base);
   await page.getByRole("button", { name: "Copy the install command" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     "npm install @totallynotdavid/solid-motion solid-js@next @solidjs/web@next",

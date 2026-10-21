@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { pageUrl } from "./base.ts";
+
 const port = 4173;
 
 export default defineConfig({
@@ -19,7 +21,7 @@ export default defineConfig({
   },
   webServer: {
     command: `bunx vite preview --host 127.0.0.1 --port ${port} --strictPort`,
-    url: `http://127.0.0.1:${port}/animating-elements`,
+    url: `http://127.0.0.1:${port}${pageUrl("animating-elements")}`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
