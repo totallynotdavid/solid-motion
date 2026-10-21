@@ -27,7 +27,7 @@ token with the `pages: write` and `id-token: write` permissions.
 ## Build locally
 
 ```sh
-mise run build:site
+bun run build:site
 ```
 
 This writes `site/dist`. To look at it as Pages serves it:

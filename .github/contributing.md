@@ -1,29 +1,30 @@
 # Contributing
 
 [mise](https://mise.jdx.dev) installs Bun and Node at the versions in
-[`mise.toml`](../mise.toml), and runs every task. Install the dependencies:
+[`mise.toml`](../mise.toml). Run `mise install`, then install the dependencies:
 
 ```sh
-mise run install
+bun install --frozen-lockfile
 ```
 
 Run every check before you open a pull request:
 
 ```sh
-mise run check
+bun run check
 ```
 
-It runs these tasks:
+It runs these scripts:
 
-| Task                  | What it does                                             |
-| --------------------- | -------------------------------------------------------- |
-| `mise run lint`       | `oxlint` with warnings as errors, and `oxfmt --check`.   |
-| `mise run typecheck`  | `tsc --noEmit` over the library, its tests and the site. |
-| `mise run test`       | `vitest run`.                                            |
-| `mise run build`      | `tsc` writes the declarations to `dist`.                 |
-| `mise run check:site` | Builds the site and tests it in Chromium (see below).    |
+| Script                     | What it does                                             |
+| -------------------------- | -------------------------------------------------------- |
+| `bun run lint`             | `oxlint` with warnings as errors, and `oxfmt --check`.   |
+| `bun run typecheck`        | `tsc --noEmit` over the library, its tests and the site. |
+| `bun run test`             | `vitest run`.                                            |
+| `bun run build`            | `tsc` writes the declarations to `dist`.                 |
+| `bun run install:browsers` | Installs the Chromium that the site tests drive.         |
+| `bun run test:site`        | Builds the site and tests it in Chromium (see below).    |
 
-`mise run fix` applies the safe lint fixes and formats code and Markdown.
+`bun run fix` applies the safe lint fixes and formats code and Markdown.
 
 ## Site
 
@@ -33,14 +34,15 @@ same controls.
 
 ```sh
 bun run --filter solid-motion-site dev    # dev server on localhost:5173
-bun run --filter solid-motion-site build  # static files in site/dist
+bun run build:site                        # static files in site/dist
 ```
 
-The tests drive every demo in Chromium. `mise run check:site` installs the
-browser first. Install it alone with:
+The tests drive every demo in Chromium. Install the browser first, then run
+them:
 
 ```sh
-mise run install:browsers
+bun run install:browsers
+bun run test:site
 ```
 
 A demo is three files in `site/src/demos`: `<name>.config.ts` for its
@@ -73,7 +75,7 @@ and checks what the element looks like. It does not mock `motion-dom`.
 The manual is in [`docs/`](../docs/README.md). Each page has an example. Run an
 example before you change the text around it.
 
-`mise run fix` formats the Markdown.
+`bun run fix` formats the Markdown.
 
 For the code layout, read [Architecture](../docs/architecture.md).
 

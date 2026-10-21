@@ -1,7 +1,7 @@
 # Releasing
 
 Pushing a tag `vX.Y.Z` publishes that version to npm. The
-[release workflow](workflows/release.yml) runs `mise run check`, publishes
+[release workflow](workflows/release.yml) runs `bun run check`, publishes
 through npm trusted publishing, then creates a GitHub release with generated
 notes. No npm token is stored in the repository.
 
