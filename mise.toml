@@ -31,6 +31,10 @@ run = "bunx vitest run"
 description = "Write the type declarations to dist"
 run = "bunx tsc -p tsconfig.build.json"
 
+[tasks."build:site"]
+description = "Build the site into site/dist"
+run = "bun run --filter solid-motion-site build"
+
 [tasks."check:site"]
 description = "Build the site and run its browser tests"
 depends = ["install:browsers"]
