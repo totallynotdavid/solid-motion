@@ -79,4 +79,5 @@ For the code layout, read [Architecture](../docs/architecture.md).
 
 ## Releases
 
-Maintainers publish with a tag. See [Releasing](releasing.md).
+Maintainers publish with a tag. See [Releasing](releasing.md). A push to `main`
+that changes the site publishes it. See [Deploying the site](deploying.md).

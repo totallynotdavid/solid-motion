@@ -84,6 +84,10 @@ again each time a signal read inside `animate` changes.
 The [manual](docs/README.md) has one page per part of the API. Start with
 [Animating elements](docs/animating-elements.md).
 
+The [documentation site](https://totallynotdavid.github.io/solid-motion/)
+renders the manual. Each example runs next to its `motion/react` equivalent and
+has controls for its values.
+
 To work on the package, see [contributing](.github/contributing.md).
 
 ## License
