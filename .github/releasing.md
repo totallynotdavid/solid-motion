@@ -2,12 +2,19 @@
 
 Pushing a tag `vX.Y.Z` publishes that version to npm. The
 [release workflow](workflows/release.yml) runs `bun run check`, publishes
-through npm trusted publishing, then creates a GitHub release with generated
-notes. No npm token is stored in the repository.
+through npm trusted publishing, then creates a GitHub release. Its body is
+[`release-notes.md`](release-notes.md) followed by GitHub's generated change
+list. No npm token is stored in the repository.
+
+The workflow also runs on every pull request and on manual dispatch. Those runs
+check the version and the notes file, run `bun run check` and
+`npm pack --dry-run`, and skip the uploads.
 
 ## Release a version
 
-1. Set `version` in `package.json` to `X.Y.Z` and merge it into `main`.
+1. Set `version` in `package.json` to `X.Y.Z`. Write `release-notes.md` with
+   `@totallynotdavid/solid-motion X.Y.Z is out.` as its first line. Merge both
+   into `main`.
 2. Tag the merge commit and push the tag:
 
    ```sh
@@ -18,10 +25,11 @@ notes. No npm token is stored in the repository.
 3. Watch the `release` run in the Actions tab. If the `npm` environment has
    required reviewers, approve the `Publish to npm` job when it waits.
 
-The first job fails at once when the tag differs from `package.json`. Fix the
-version, delete the tag (`git push origin :refs/tags/vX.Y.Z`) and tag again. npm
-never accepts the same version twice, so a version that published cannot be
-re-released. Bump it instead.
+The first job fails at once when the tag differs from `package.json`, or when
+the first line of the notes file does not name the version. Fix it, delete the
+tag (`git push origin :refs/tags/vX.Y.Z`) and tag again. npm never accepts the
+same version twice, so a version that published cannot be re-released. Bump it
+instead.
 
 ## One-time setup
 
