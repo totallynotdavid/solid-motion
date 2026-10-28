@@ -49,7 +49,7 @@ function createMotionComponent<TProps extends object>(host: MotionHost) {
   };
 }
 
-const componentCache = new Map<string, MotionComponent>();
+const componentCache = new Map<string, MotionComponent<MotionProps>>();
 const createCustomMotion = <TProps extends object>(
   component: MotionComponent<TProps>,
 ) =>
@@ -65,9 +65,7 @@ export const motion = new Proxy(
       if (!componentCache.has(key)) {
         componentCache.set(
           key,
-          createMotionComponent<Record<string, unknown>>(
-            key as keyof JSX.IntrinsicElements,
-          ),
+          createMotionComponent<object>(key as keyof JSX.IntrinsicElements),
         );
       }
       return componentCache.get(key);
