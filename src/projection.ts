@@ -4,6 +4,7 @@ import {
   frame,
   measureViewportBox,
   renderHTML,
+  type MotionValue,
   type HTMLRenderState,
   type IProjectionNode,
   type LayoutUpdateData,
@@ -118,6 +119,8 @@ export function createProjection(
   /** Shared with the value store, so one paint writes both sets of styles. */
   renderState: HTMLRenderState,
   options: LayoutOptions,
+  /** Looks up an animated value by name, so a snapshot can carry its velocity. */
+  getValue: (key: string) => MotionValue | undefined,
 ): Projection {
   let node: IProjectionNode | undefined;
   let blocked = false;
@@ -173,6 +176,7 @@ export function createProjection(
         onLayoutAnimationComplete,
       };
     },
+    getValue,
     getDefaultTransition: () => timing.transition,
     get shouldReduceMotion() {
       return timing.instant;

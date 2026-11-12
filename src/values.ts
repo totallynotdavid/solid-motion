@@ -174,7 +174,9 @@ function createValueStore(
   // Projection is HTML-only. SVG uses its normal property effects.
   const projection =
     layout && isHTMLElement(element)
-      ? createProjection(element, latestValues, renderState, layout)
+      ? createProjection(element, latestValues, renderState, layout, (key) =>
+          values.get(key),
+        )
       : undefined;
 
   // A template has to see every transform value together, so the element paints
