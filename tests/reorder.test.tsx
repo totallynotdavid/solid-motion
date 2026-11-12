@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { For, createSignal } from "solid-js";
+import { Errored, For, createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Reorder } from "../src";
@@ -397,10 +397,12 @@ describe("Reorder", () => {
   });
 
   it("cannot render an item outside a group", () => {
-    const silence = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => render(() => <Reorder.Item value="a" />)).toThrow(
-      "inside Reorder.Group",
-    );
-    silence.mockRestore();
+    const view = render(() => (
+      <Errored fallback={(error) => <p>{(error() as Error).message}</p>}>
+        <Reorder.Item value="a" />
+      </Errored>
+    ));
+
+    expect(view.container.textContent).toContain("inside Reorder.Group");
   });
 });
