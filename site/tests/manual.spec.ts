@@ -20,12 +20,14 @@ test("the sidebar and Next follow the order of the manual's index", async ({
   await page.goto(pageUrl(listed[0]?.slug ?? ""));
 
   const sidebar = page.locator("nav[aria-label='Manual'] a");
-  await expect(sidebar).toHaveText(listed.map((entry) => entry.title));
+  await expect(sidebar.locator("span:last-child")).toHaveText(
+    listed.map((entry) => entry.title),
+  );
   expect(
     await sidebar.evaluateAll((a) => a.map((e) => e.getAttribute("href"))),
   ).toEqual(listed.map((entry) => pageUrl(entry.slug)));
 
-  await page.getByRole("link", { name: /^Next/ }).click();
+  await page.locator(".pager a[rel='next']").click();
   await expect(page).toHaveURL(pageUrl(listed[1]?.slug ?? ""));
 });
 

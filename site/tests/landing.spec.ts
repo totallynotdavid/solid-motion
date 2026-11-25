@@ -19,7 +19,7 @@ test("the landing page shows the package in motion within one screen", async ({
   await expect.poll(async () => Math.min(...(await opacities()))).toBe(1);
 
   const viewport = page.viewportSize();
-  const box = await page.locator("main.landing").boundingBox();
+  const box = await page.locator(".landing").boundingBox();
   expect(box?.height, "the hero fits in the viewport").toBeLessThanOrEqual(
     viewport?.height ?? 0,
   );

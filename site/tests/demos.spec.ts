@@ -20,12 +20,14 @@ function expectNear(
 }
 
 const demoRoot = (probe: Probe) => `[data-demo="${probe.demo}"]`;
+const islandRoot = (probe: Probe) => `[data-island="${probe.demo}"]`;
 const paneOf = (page: Page, probe: Probe, side: Side) =>
   page.locator(`${demoRoot(probe)} [data-pane="${side}"]`);
 
 async function open(page: Page, probe: Probe): Promise<Side[]> {
   await page.goto(pageUrl(probe.page));
-  await page.locator(demoRoot(probe)).scrollIntoViewIfNeeded();
+  await page.locator(islandRoot(probe)).scrollIntoViewIfNeeded();
+  await expect(page.locator(demoRoot(probe))).toBeAttached();
   return waitReady(page, probe);
 }
 
@@ -167,7 +169,8 @@ test.describe("every demo", () => {
               ).toBeGreaterThan(500);
             }
             await page.reload();
-            await page.locator(demoRoot(probe)).scrollIntoViewIfNeeded();
+            await page.locator(islandRoot(probe)).scrollIntoViewIfNeeded();
+            await expect(page.locator(demoRoot(probe))).toBeAttached();
             await waitReady(page, probe);
           }
         });

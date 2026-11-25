@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 import { pageUrl } from "./base.ts";
 
-const port = 4173;
+const port = Number(process.env.PREVIEW_PORT ?? 4373);
 
 export default defineConfig({
   testDir: "tests",

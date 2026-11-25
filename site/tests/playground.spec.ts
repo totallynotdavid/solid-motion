@@ -3,12 +3,13 @@ import { expect, test, type Page } from "@playwright/test";
 import { base, pageUrl } from "../base.ts";
 
 const entrance = '[data-demo="entrance"]';
+const entranceIsland = '[data-island="entrance"]';
 const pane = (side: "solid" | "react") =>
   `${entrance} [data-pane="${side}"] .stage`;
 
 async function openEntrance(page: Page): Promise<void> {
   await page.goto(pageUrl("animating-elements"));
-  await page.locator(entrance).scrollIntoViewIfNeeded();
+  await page.locator(entranceIsland).scrollIntoViewIfNeeded();
   await expect(page.locator(pane("react"))).toHaveAttribute(
     "data-state",
     "ready",
@@ -84,8 +85,8 @@ test("a demo solid-motion cannot run yet says so and the React pane still runs",
   page,
 }) => {
   await page.goto(pageUrl("animating-elements"));
+  await page.locator('[data-island="path"]').scrollIntoViewIfNeeded();
   const demo = page.locator('[data-demo="path"]');
-  await demo.scrollIntoViewIfNeeded();
   await expect(demo.locator('[data-pane="solid"]')).toHaveAttribute(
     "data-state",
     "not-yet",
@@ -107,7 +108,7 @@ test("no page logs an error", async ({ page }) => {
       problems.push(message.text());
     }
   });
-  await page.goto(base);
+  await page.goto(pageUrl("animating-elements"));
   const links = await page
     .locator("nav[aria-label='Manual'] a")
     .evaluateAll((anchors) =>
