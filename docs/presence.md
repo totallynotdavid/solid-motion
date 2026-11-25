@@ -87,6 +87,8 @@ before it has gone, the element goes back into the flow. Combine it with
 `onExitComplete` is called once, after the last leaving subtree has gone. For a
 list, that is after the last leaving row.
 
+<!-- island presence -->
+
 ## AnimatePresenceList
 
 ```tsx
@@ -119,6 +121,8 @@ the end of the list.
 rows that are leaving are rendered until the last one has gone. The other rows
 are removed and created again after that, so use `"wait"` for a list that shows
 one row at a time.
+
+<!-- island rows -->
 
 ## How an exit finishes
 

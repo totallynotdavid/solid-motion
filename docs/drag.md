@@ -25,6 +25,8 @@ const x = createMotionValue(0);
 
 A press that moves less than a few pixels is a click, not a drag.
 
+<!-- island drag -->
+
 ## Props
 
 | Prop                       | Meaning                                                              |

@@ -109,6 +109,8 @@ import { motion, stagger } from "@totallynotdavid/solid-motion";
 </motion.ul>;
 ```
 
+<!-- island stagger -->
+
 ## Ordering a parent and its children
 
 `when` makes the parent and its children take turns.

@@ -38,6 +38,8 @@ the client.
 />
 ```
 
+<!-- island draw -->
+
 ## Style and attributes
 
 CSS properties such as `opacity`, `transform` and `fill` go through `style`, as

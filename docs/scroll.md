@@ -110,3 +110,5 @@ measured without it.
 
 Offsets are measured with `offsetTop` and `offsetLeft`, so a CSS transform on
 the target or on an ancestor is not counted.
+
+<!-- island scroll-progress -->

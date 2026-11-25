@@ -54,6 +54,8 @@ await animate(".dot", { opacity: 0 });
 `finished` also settles when you call `stop()`. A call that you make before the
 first frame runs, such as `pause()`, is applied once the animation starts.
 
+<!-- island animate-value -->
+
 ## Sequences
 
 Pass a list of `[target, definition]` steps to run them one after another. Each
@@ -65,6 +67,10 @@ await animate([
   [".body", { opacity: 1 }],
 ]);
 ```
+
+<!-- island sequence -->
+
+<!-- island sequence-at -->
 
 ## Rules
 

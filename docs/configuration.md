@@ -23,6 +23,8 @@ rest. `useMotionConfig()` returns the current values.
 The settings also apply to animations started with
 [`createAnimate`](create-animate.md).
 
+<!-- island config -->
+
 ## Reduced motion
 
 `reducedMotion` decides what happens for people who ask their system for less

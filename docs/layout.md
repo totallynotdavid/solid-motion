@@ -47,6 +47,8 @@ function Switch() {
 The `.on` class moves the knob to the other end. The knob slides there instead
 of jumping.
 
+<!-- island switch -->
+
 ## layout
 
 | Value               | Animates                                                |
@@ -111,6 +113,8 @@ exiting while the new one enters.
 
 By default the two elements crossfade. `layoutCrossfade={false}` on an element
 stops it fading and leaves it at its own opacity.
+
+<!-- island tabs -->
 
 ## LayoutGroup
 

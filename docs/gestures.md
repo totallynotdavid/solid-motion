@@ -40,6 +40,8 @@ every focus as visible.
 Hover and press come from `motion-dom`. In-view uses `IntersectionObserver`, and
 the element is never in view where the browser has none.
 
+<!-- island hover-tap -->
+
 ## Callbacks
 
 Each state has callbacks. They run whether or not the matching `while*` prop is

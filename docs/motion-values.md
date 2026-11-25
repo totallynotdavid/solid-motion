@@ -69,6 +69,8 @@ const x = createMotionValue(targetX, { stiffness: 300, damping: 30 });
 The default is a spring. Any `Transition` works, so
 `{ type: "tween", duration: 0.3 }` follows with a tween.
 
+<!-- island follow -->
+
 ## Derived values
 
 `createTransform` makes a value from other motion values. It is recomputed on

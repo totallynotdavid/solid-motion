@@ -28,6 +28,8 @@ The element is painted at `initial`, then animates to `animate`. `animate` is
 read in a tracking scope, so a signal inside it re-runs the animation. Only the
 values that changed start a new animation.
 
+<!-- island entrance -->
+
 ## Props
 
 | Prop                                                               | Meaning                                                                     |
@@ -77,6 +79,8 @@ A target maps a property to its end value.
 
 A target can also be a variant label or a list of labels. See
 [variants](variants.md).
+
+<!-- island keyframes -->
 
 ## Layers
 
@@ -128,6 +132,8 @@ with `initial={false}`, only `onAnimationComplete` is called.
 `transition` is a `Transition` from `motion-dom`. It takes `duration`, `ease`,
 `delay`, `type: "spring"` with `stiffness` and `damping`, and the other options
 in the [Motion documentation](https://motion.dev/docs/react-transitions).
+
+<!-- island path -->
 
 ## Controls
 
