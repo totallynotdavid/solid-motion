@@ -8,9 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.3.0",
-    "@fontsource-variable/geist-mono": "^5.3.0",
-    "@risinghq/folio": "https://github.com/risinghq/folio/releases/download/v0.1.0/risinghq-folio-0.1.0.tgz",
+    "@risinghq/folio": "https://github.com/risinghq/folio/releases/download/v0.1.1/risinghq-folio-0.1.1.tgz",
     "motion": "^14.13.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

@@ -28,9 +28,7 @@
       "name": "solid-motion-site",
       "version": "0.0.0",
       "dependencies": {
-        "@fontsource-variable/geist": "^5.3.0",
-        "@fontsource-variable/geist-mono": "^5.3.0",
-        "@risinghq/folio": "https://github.com/risinghq/folio/releases/download/v0.1.0/risinghq-folio-0.1.0.tgz",
+        "@risinghq/folio": "https://github.com/risinghq/folio/releases/download/v0.1.1/risinghq-folio-0.1.1.tgz",
         "motion": "^14.13.0",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
@@ -155,7 +153,7 @@
 
     "@playwright/test": ["@playwright/test@1.65.0", "", { "dependencies": { "playwright": "1.65.0" }, "bin": { "playwright": "cli.js" } }, "sha512-iGURLGuKDLakSEl7Pgfv8h7f+XLT+V861Wfhz0zlEl5nyFuKUopdkFBPKqTllTUp06aOwPuH8iuUEb3yp3MpbQ=="],
 
-    "@risinghq/folio": ["@risinghq/folio@https://github.com/risinghq/folio/releases/download/v0.1.0/risinghq-folio-0.1.0.tgz", { "dependencies": { "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@shikijs/langs": "^4.6.0", "marked": "^18.2.0", "shiki": "^4.6.0" }, "peerDependencies": { "@solidjs/web": "^2.0.0-rc.21", "solid-js": "^2.0.0-rc.21", "vite": "^8.3.8" }, "hasInstallScript": true }, "sha512-3YXLba7SPsXVH/JODEfo61WRhKAJ9BRLSLB2My28k8GXJcBZM6mmqdM/1SsyEC2Vd8QfiJAtkJNRr4lFJJB+8Q=="],
+    "@risinghq/folio": ["@risinghq/folio@https://github.com/risinghq/folio/releases/download/v0.1.1/risinghq-folio-0.1.1.tgz", { "dependencies": { "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@shikijs/langs": "^4.6.0", "marked": "^18.2.0", "shiki": "^4.6.0" }, "peerDependencies": { "@solidjs/web": "^2.0.0-rc.21", "solid-js": "^2.0.0-rc.21", "vite": "^8.3.8" }, "hasInstallScript": true }, "sha512-8d+1Z4U7+/FKev5tf1v6APkxjGZRy4b+k6OMFJIiCa9kb0gWpbKwGRt5N0w6TA7UTJoRLuRSXSxnRiGKVZvlcw=="],
 
     "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.19", "", { "os": "android", "cpu": "arm" }, "sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A=="],
 
