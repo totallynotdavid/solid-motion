@@ -32,7 +32,8 @@ It runs these scripts:
 [folio](https://github.com/risinghq/folio). folio renders each page of the
 manual in `docs/` to a static page, and mounts a demo where the page says
 `<!-- island NAME -->`. Each demo runs twice, once with solid-motion and once
-with `motion/react`, with the same controls.
+with `motion/react`, with the same controls. `docs/index.md` is the home page,
+and its `hero` island is `site/src/pages/hero.tsx`.
 
 ```sh
 bun run --filter solid-motion-site dev    # dev server on localhost:5173

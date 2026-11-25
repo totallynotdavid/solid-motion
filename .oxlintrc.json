@@ -14,7 +14,7 @@
   },
   "overrides": [
     {
-      "files": ["site/src/pages/landing.tsx"],
+      "files": ["site/src/pages/hero.tsx"],
       "rules": {
         "import/default": "off"
       }
