@@ -55,7 +55,7 @@ test("inline code keeps its type arguments", async ({ page }) => {
   }
 });
 
-test("links on the landing page and between pages stay under the base", async ({
+test("links on the home page and between pages stay under the base", async ({
   page,
 }) => {
   await page.goto(base);

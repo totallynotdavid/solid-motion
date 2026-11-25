@@ -4,7 +4,7 @@ import { base } from "../base.ts";
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-test("the landing page shows the package in motion within one screen", async ({
+test("the home page shows the package in motion within one screen", async ({
   page,
 }) => {
   await page.goto(base);
@@ -19,14 +19,17 @@ test("the landing page shows the package in motion within one screen", async ({
   await expect.poll(async () => Math.min(...(await opacities()))).toBe(1);
 
   const viewport = page.viewportSize();
-  const box = await page.locator(".landing").boundingBox();
+  const box = await page.locator("main").boundingBox();
   expect(box?.height, "the hero fits in the viewport").toBeLessThanOrEqual(
     viewport?.height ?? 0,
   );
-  await expect(page.locator(".install")).toBeInViewport({ ratio: 1 });
-  await expect(page.locator(".landing-demo .code")).toBeInViewport({
-    ratio: 1,
-  });
+  await expect(
+    page.locator("figure", { hasText: "npm install" }),
+  ).toBeInViewport({ ratio: 1 });
+  await expect(page.locator(".hero .code")).toBeInViewport({ ratio: 1 });
+  await expect(
+    page.getByRole("link", { name: "Read the manual" }),
+  ).toBeInViewport({ ratio: 1 });
 });
 
 test("hovering a tile scales it, and Replay plays the entrance again", async ({
@@ -58,7 +61,10 @@ test("hovering a tile scales it, and Replay plays the entrance again", async ({
 test("the install command copies", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto(base);
-  await page.getByRole("button", { name: "Copy the install command" }).click();
+  await page
+    .locator("figure", { hasText: "npm install" })
+    .getByRole("button", { name: "Copy" })
+    .click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     "npm install @totallynotdavid/solid-motion solid-js@next @solidjs/web@next",
   );

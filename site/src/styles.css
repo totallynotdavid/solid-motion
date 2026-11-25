@@ -1,4 +1,4 @@
-/* Island styles: the demos and the landing. Site chrome comes from folio's
+/* Island styles: the demos and the home page's hero. Site chrome comes from folio's
  * theme, which also owns every token but these two accent roles. */
 :root {
   --accent-ink: oklch(0.76 0.16 42);
@@ -522,86 +522,74 @@ a.button {
   transform-origin: left;
 }
 
-.landing {
+/*
+ * folio renders the text of docs/index.md; the hero island sits beside it.
+ * The island spans the 1fr rows around the text, so its height centres the
+ * text instead of stretching the rows that hold it. The text rows follow the
+ * order of docs/index.md: title, lede, install command, links.
+ */
+.home:has([data-island="hero"]) {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  align-items: center;
-  gap: clamp(2rem, 5vw, 5rem);
+  grid-template-rows: 1fr repeat(4, auto) 1fr;
+  column-gap: clamp(2rem, 5vw, 5rem);
   max-width: 76rem;
   min-height: calc(100svh - var(--header));
-  margin-inline: auto;
+  margin: 0 auto;
   padding: 2rem clamp(1rem, 3vw, 2rem);
 }
-.landing h1 {
-  margin: 0.75rem 0 0;
+.home:has([data-island="hero"]) .prose {
+  display: contents;
+}
+.home:has([data-island="hero"]) > *,
+.home:has([data-island="hero"]) .prose > * {
+  grid-column: 1;
+  max-width: 30rem;
+}
+.home:has([data-island="hero"]) > h1 {
   font-size: clamp(2.4rem, 4.4vw, 3.5rem);
-  font-weight: 600;
   line-height: 1.04;
   letter-spacing: -0.035em;
-  text-wrap: balance;
 }
-.eyebrow {
+.home:has([data-island="hero"]) .prose > figure.code pre {
+  white-space: pre-wrap;
+}
+.home .prose > [data-island="hero"] {
+  max-width: none;
+  margin: 2rem 0 0;
+}
+@media (min-width: 961px) {
+  .home:has([data-island="hero"]) > h1 {
+    grid-row: 2;
+  }
+  .home:has([data-island="hero"]) .prose > :nth-child(1) {
+    grid-row: 3;
+  }
+  .home:has([data-island="hero"]) .prose > :nth-child(2) {
+    grid-row: 4;
+  }
+  .home:has([data-island="hero"]) .prose > :nth-child(3) {
+    grid-row: 5;
+  }
+  .home .prose > [data-island="hero"] {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    margin: 0;
+  }
+}
+.hero .tiles {
+  padding: 0;
   margin: 0;
-  font: 500 0.75rem/1 var(--mono);
-  letter-spacing: 0.02em;
-  color: var(--accent-ink);
 }
-.lede {
-  margin: 1.25rem 0 0;
-  max-width: 30rem;
-  font-size: 1.0625rem;
-  line-height: 1.6;
-  color: var(--muted);
-  text-wrap: pretty;
+.hero .tile {
+  margin: 0;
 }
-.install {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  max-width: 30rem;
-  margin-top: 1.75rem;
-  padding: 0.35rem 0.4rem 0.35rem 0.9rem;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-.install code {
-  min-width: 0;
-  padding-block: 0.4rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
-.install .copy {
-  flex-shrink: 0;
-}
-.install code span {
-  white-space: nowrap;
-}
-.landing-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  margin-top: 1.5rem;
-}
-.landing-actions .button {
-  padding: 0.7rem 1.1rem;
-  font-size: 0.875rem;
-}
-.link-quiet {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--muted);
-  text-underline-offset: 0.25em;
-}
-.link-quiet:hover {
-  color: var(--accent-ink);
-}
-.landing-demo .demo {
+.hero {
   position: relative;
   margin: 0;
 }
-.landing-stage {
+.hero-stage {
   height: 21rem;
   padding: 3rem 1.25rem 1.25rem;
 }
@@ -636,16 +624,17 @@ a.button {
   top: 0.75rem;
   right: 0.75rem;
 }
-.landing-demo .code-panel .code {
+.hero .code-panel .code {
   max-height: none;
 }
-.landing-demo .code pre {
+.hero .code pre {
   font-size: 0.72rem;
 }
 
 @media (max-width: 960px) {
-  .landing {
+  .home:has([data-island="hero"]) {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     min-height: 0;
     padding-block: 3rem;
   }
