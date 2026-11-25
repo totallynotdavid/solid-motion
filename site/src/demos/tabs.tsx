@@ -51,8 +51,6 @@ export default defineDemo<TabsParams>({
   id: "tabs",
   title: "Shared layout",
   hint: "Two elements share a `layoutId`. When one replaces the other, the new one animates from the old one's box.",
-  page: "layout",
-  after: "layoutid",
   defaults: tabsDefaults,
   controls: transitionControls<TabsParams>({ delay: false }),
   Solid: Tabs,

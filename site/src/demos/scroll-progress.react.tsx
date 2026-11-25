@@ -2,7 +2,7 @@
 import { motion, useScroll } from "motion/react";
 import { useRef } from "react";
 
-import { offsetOf, type ScrollParams } from "./scroll.config";
+import { offsetOf, type ScrollParams } from "./scroll-progress.config";
 
 export default function Scroll({ p }: { p: ScrollParams }) {
   const scroller = useRef<HTMLDivElement>(null);

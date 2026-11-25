@@ -26,8 +26,6 @@ export default defineDemo<EntranceParams>({
   id: "entrance",
   title: "Entrance",
   hint: "The box starts at `initial` and animates to `animate` on mount. Change how it gets there.",
-  page: "animating-elements",
-  after: "intro",
   defaults: entranceDefaults,
   controls: [
     ...transitionControls<EntranceParams>(),

@@ -1,7 +1,7 @@
 import { defineDemo } from "../playground/demo";
 import { literal, raw, withImport } from "../playground/format";
 import { transitionControls, transitionOf } from "../playground/params";
-import { valueDefaults, type ValueParams } from "./value.config";
+import { valueDefaults, type ValueParams } from "./animate-value.config";
 
 function code(p: ValueParams): string {
   const options = { ...transitionOf(p), onUpdate: raw("setValue") };
@@ -16,14 +16,12 @@ export default defineDemo<ValueParams>({
   id: "animate-value",
   title: "Animate a number",
   hint: "`animate(from, to, options)` drives a plain number and calls `onUpdate` on every frame.",
-  page: "create-animate",
-  after: "controls",
   defaults: valueDefaults,
   gap: "animate-value",
   controls: [
     { key: "to", label: "To", kind: "range", min: 10, max: 500, step: 10 },
     ...transitionControls<ValueParams>({ delay: false }),
   ],
-  React: () => import("./value.react"),
+  React: () => import("./animate-value.react"),
   code: { react: code },
 });

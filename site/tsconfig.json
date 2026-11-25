@@ -7,5 +7,5 @@
       "@totallynotdavid/solid-motion": ["../src/index.tsx"]
     }
   },
-  "include": ["src/**/*", "plugins/**/*", "tests/**/*", "*.ts"]
+  "include": ["src/**/*", "tests/**/*", "*.ts"]
 }

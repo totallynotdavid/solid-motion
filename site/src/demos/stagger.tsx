@@ -69,8 +69,6 @@ export default defineDemo<StaggerParams>({
   id: "stagger",
   title: "Stagger",
   hint: "The parent names the variant. Each child looks it up in its own map and starts a beat after the one before.",
-  page: "variants",
-  after: "stagger",
   defaults: staggerDefaults,
   height: 190,
   controls: [

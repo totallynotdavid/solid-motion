@@ -1,4 +1,3 @@
-import type { JSX } from "@solidjs/web";
 import type { ComponentType } from "react";
 import type { Component } from "solid-js";
 
@@ -15,9 +14,6 @@ export interface DemoSpec<P extends Params> {
   title: string;
   /** One or two sentences: what to try. */
   hint: string;
-  /** The manual page, by slug, and the section the demo follows. */
-  page: string;
-  after: string;
   defaults: P;
   controls: Control<P>[];
   /** Left out while `gap` is set. */
@@ -28,18 +24,7 @@ export interface DemoSpec<P extends Params> {
   height?: number;
 }
 
-export interface Demo {
-  id: string;
-  page: string;
-  after: string;
-  view: () => JSX.Element;
-}
-
-export function defineDemo<P extends Params>(spec: DemoSpec<P>): Demo {
-  return {
-    id: spec.id,
-    page: spec.page,
-    after: spec.after,
-    view: () => <DemoFrame spec={spec} />,
-  };
+/** The island a `<!-- island NAME -->` marker mounts. */
+export function defineDemo<P extends Params>(spec: DemoSpec<P>): Component {
+  return () => <DemoFrame spec={spec} />;
 }

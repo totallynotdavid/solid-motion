@@ -49,8 +49,6 @@ export default defineDemo<SwitchParams>({
   id: "switch",
   title: "Layout switch",
   hint: "The class moves the knob in CSS. `layout` animates it there instead of jumping. Click the switch.",
-  page: "layout",
-  after: "intro",
   defaults: switchDefaults,
   controls: transitionControls<SwitchParams>({ delay: false }),
   Solid: Switch,

@@ -2,7 +2,7 @@
 import { useAnimate } from "motion/react";
 import { useEffect } from "react";
 
-import { dots, type OverlapParams } from "./overlap.config";
+import { dots, type OverlapParams } from "./sequence-at.config";
 
 export default function Overlap({ p }: { p: OverlapParams }) {
   const [scope, animate] = useAnimate();

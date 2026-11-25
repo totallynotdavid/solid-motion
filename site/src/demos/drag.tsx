@@ -42,8 +42,6 @@ export default defineDemo<DragParams>({
   id: "drag",
   title: "Drag with constraints",
   hint: "Drag the box past the dashed edge and let go. It resists by the elastic factor, then springs back.",
-  page: "drag",
-  after: "intro",
   defaults: dragDefaults,
   height: 200,
   controls: [

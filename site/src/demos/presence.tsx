@@ -58,8 +58,6 @@ export default defineDemo<PresenceParams>({
   id: "presence",
   title: "Exit animation",
   hint: "Toggle the box. It stays mounted while `exit` plays, then the boundary removes it.",
-  page: "presence",
-  after: "animatepresence",
   defaults: presenceDefaults,
   controls: [
     {

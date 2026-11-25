@@ -2,7 +2,6 @@ import { MotionConfig, motion } from "@totallynotdavid/solid-motion";
 import { createSignal, Show } from "solid-js";
 
 import { pageUrl } from "../../base";
-import { pages } from "../content/pages";
 import { Code, CopyButton } from "../playground/code";
 import { Tiles } from "./hero-example";
 import example from "./hero-example.tsx?raw";
@@ -34,12 +33,17 @@ const rise = {
   visible: { opacity: 1, y: 0 },
 };
 
-export function Landing() {
+/** The first manual page, from the header's Manual link. */
+const manual = () =>
+  document.querySelector<HTMLAnchorElement>(".site-nav a")?.href ??
+  pageUrl("animating-elements");
+
+export default function Landing() {
   const [run, setRun] = createSignal(1);
 
   return (
     <MotionConfig reducedMotion="user">
-      <main id="content" class="landing">
+      <div class="landing">
         <motion.div
           class="landing-copy"
           initial="hidden"
@@ -69,7 +73,7 @@ export function Landing() {
             <CopyButton text={() => install} label="Copy the install command" />
           </motion.div>
           <motion.div class="landing-actions" variants={rise}>
-            <a class="button" href={pageUrl(pages[0]?.slug ?? "")}>
+            <a class="button" href={manual()}>
               Read the manual
             </a>
             <a class="link-quiet" href={pageUrl("gestures")}>
@@ -99,7 +103,7 @@ export function Landing() {
             </div>
           </section>
         </div>
-      </main>
+      </div>
     </MotionConfig>
   );
 }

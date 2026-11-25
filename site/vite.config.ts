@@ -1,24 +1,31 @@
 import { fileURLToPath } from "node:url";
 
+import { folio } from "@risinghq/folio";
 import solid from "@solidjs/vite-plugin";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import pkg from "../package.json" with { type: "json" };
 import { base } from "./base.ts";
-import { docs } from "./plugins/docs.ts";
-import { staticRoutes } from "./plugins/static-routes.ts";
 
 const reactFiles = /\.react\.tsx$/;
 
-// Preview serves files like GitHub Pages. MPA mode makes missing routes 404.
-export default defineConfig(({ isPreview }) => ({
+export default defineConfig({
   base,
-  appType: isPreview ? "mpa" : "spa",
   plugins: [
-    docs(),
+    folio({
+      title: "solid-motion",
+      version: pkg.version,
+      description:
+        "Animation primitives for Solid 2. Run every example, change its values, and compare it with motion/react.",
+      docs: "../docs",
+      repository: "https://github.com/totallynotdavid/solid-motion",
+      branch: "main",
+      islands: "src/islands.ts",
+      landing: "landing",
+    }),
     solid({ exclude: reactFiles }),
     react({ include: reactFiles }),
-    staticRoutes(),
   ],
   resolve: {
     alias: {
@@ -28,4 +35,4 @@ export default defineConfig(({ isPreview }) => ({
     },
   },
   server: { fs: { allow: [".."] } },
-}));
+});

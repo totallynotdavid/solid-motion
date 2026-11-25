@@ -51,8 +51,6 @@ export default defineDemo<SequenceParams>({
   id: "sequence",
   title: "A sequence",
   hint: "Each step starts when the one before it ends. The three dots arrive one after another.",
-  page: "create-animate",
-  after: "sequences",
   defaults: sequenceDefaults,
   controls: [
     {

@@ -3,7 +3,7 @@ import { animate } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { transitionOf } from "../playground/params";
-import type { ValueParams } from "./value.config";
+import type { ValueParams } from "./animate-value.config";
 
 export default function Value({ p }: { p: ValueParams }) {
   const [value, setValue] = useState(0);

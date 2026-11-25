@@ -18,7 +18,7 @@ function Follow(props: DemoProps<FollowParams>) {
       >
         Move
       </button>
-      <div class="rail">
+      <div class="lane">
         <motion.div class="box small" data-probe style={{ x }} />
       </div>
     </div>
@@ -44,8 +44,6 @@ export default defineDemo<FollowParams>({
   id: "follow",
   title: "A value that follows",
   hint: "A motion value follows its source with a spring. Press Move, then again while it is still travelling.",
-  page: "motion-values",
-  after: "springs-and-following",
   defaults: followDefaults,
   controls: transitionControls<FollowParams>({ delay: false }),
   Solid: Follow,

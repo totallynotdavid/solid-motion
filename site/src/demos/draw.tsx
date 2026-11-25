@@ -31,8 +31,6 @@ export default defineDemo<DrawParams>({
   id: "draw",
   title: "Draw a path",
   hint: "`pathLength` goes from 0 to 1 and the stroke draws itself. The package sets up the dash for you.",
-  page: "svg",
-  after: "drawing-a-path",
   defaults: drawDefaults,
   controls: [
     {

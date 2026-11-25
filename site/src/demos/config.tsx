@@ -37,8 +37,6 @@ export default defineDemo<ConfigParams>({
   id: "config",
   title: "MotionConfig",
   hint: "The first box sets no transition and takes the one from `MotionConfig`. The second sets its own. `skipAnimations` overrules both.",
-  page: "configuration",
-  after: "intro",
   defaults: configDefaults,
   controls: [
     { key: "skip", label: "skipAnimations", kind: "toggle" },

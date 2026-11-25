@@ -1,7 +1,11 @@
 import { defineDemo } from "../playground/demo";
 import { literal, withImport } from "../playground/format";
 import { eases } from "../playground/params";
-import { dots, overlapDefaults, type OverlapParams } from "./overlap.config";
+import {
+  dots,
+  overlapDefaults,
+  type OverlapParams,
+} from "./sequence-at.config";
 
 function code(p: OverlapParams): string {
   const steps = dots
@@ -25,8 +29,6 @@ export default defineDemo<OverlapParams>({
   id: "sequence-at",
   title: "Overlapping steps",
   hint: "A third item on each step sets `at`. A negative offset starts the step before the last one ends.",
-  page: "create-animate",
-  after: "sequences",
   defaults: overlapDefaults,
   gap: "sequence-at",
   controls: [
@@ -59,6 +61,6 @@ export default defineDemo<OverlapParams>({
       unit: "px",
     },
   ],
-  React: () => import("./overlap.react"),
+  React: () => import("./sequence-at.react"),
   code: { react: code },
 });

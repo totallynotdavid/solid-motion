@@ -3,7 +3,11 @@ import { createSignal } from "solid-js";
 
 import { defineDemo, type DemoProps } from "../playground/demo";
 import { literal, withImport, type Library } from "../playground/format";
-import { offsetOf, scrollDefaults, type ScrollParams } from "./scroll.config";
+import {
+  offsetOf,
+  scrollDefaults,
+  type ScrollParams,
+} from "./scroll-progress.config";
 
 function Scroll(props: DemoProps<ScrollParams>) {
   const [scroller, setScroller] = createSignal<HTMLElement>();
@@ -50,8 +54,6 @@ export default defineDemo<ScrollParams>({
   id: "scroll-progress",
   title: "Scroll progress",
   hint: "Scroll the list. The bar follows how far the card has travelled between the two offset points.",
-  page: "scroll",
-  after: "offsets",
   defaults: scrollDefaults,
   height: 200,
   controls: [
@@ -63,6 +65,6 @@ export default defineDemo<ScrollParams>({
     },
   ],
   Solid: Scroll,
-  React: () => import("./scroll.react"),
+  React: () => import("./scroll-progress.react"),
   code: { solid: (p) => code("solid", p), react: (p) => code("react", p) },
 });

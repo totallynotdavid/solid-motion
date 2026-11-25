@@ -3,7 +3,11 @@ import { motion } from "@totallynotdavid/solid-motion";
 import { defineDemo, type DemoProps } from "../playground/demo";
 import { openTag, withImport, type Library } from "../playground/format";
 import { transitionControls } from "../playground/params";
-import { hoverDefaults, hoverProps, type HoverParams } from "./hover.config";
+import {
+  hoverDefaults,
+  hoverProps,
+  type HoverParams,
+} from "./hover-tap.config";
 
 function Hover(props: DemoProps<HoverParams>) {
   const { whileHover, whileTap, transition } = hoverProps(props.p);
@@ -32,8 +36,6 @@ export default defineDemo<HoverParams>({
   id: "hover-tap",
   title: "Hover and tap",
   hint: "Move the pointer over the box, then press it. Each state is a target the box animates to, and back from.",
-  page: "gestures",
-  after: "intro",
   defaults: hoverDefaults,
   controls: [
     {
@@ -55,6 +57,6 @@ export default defineDemo<HoverParams>({
     ...transitionControls<HoverParams>({ delay: false }),
   ],
   Solid: Hover,
-  React: () => import("./hover.react"),
+  React: () => import("./hover-tap.react"),
   code: { solid: (p) => code("solid", p), react: (p) => code("react", p) },
 });

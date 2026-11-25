@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { motion } from "motion/react";
 
-import { hoverProps, type HoverParams } from "./hover.config";
+import { hoverProps, type HoverParams } from "./hover-tap.config";
 
 export default function Hover({ p }: { p: HoverParams }) {
   return (

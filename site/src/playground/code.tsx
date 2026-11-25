@@ -8,7 +8,7 @@ let loading: Promise<void> | undefined;
 /** The highlighter is large, so it loads after the first paint. */
 function loadHighlighter(): void {
   loading ??= (async () => {
-    const module = await import("../shared/highlight");
+    const module = await import("@risinghq/folio/highlight");
     setHighlighter(() => module.highlight);
   })();
 }

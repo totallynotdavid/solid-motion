@@ -32,8 +32,6 @@ export default defineDemo<PathParams>({
   id: "path",
   title: "Curved path",
   hint: "`path: arc()` bends the move from one point to the next instead of drawing a straight line.",
-  page: "animating-elements",
-  after: "transitions",
   defaults: pathDefaults,
   gap: "path",
   controls: [

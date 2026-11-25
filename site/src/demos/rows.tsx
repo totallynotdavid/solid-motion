@@ -72,8 +72,6 @@ export default defineDemo<RowsParams>({
   id: "rows",
   title: "Exit in a list",
   hint: "Remove a row. With `popLayout` the row leaves the flow at once, so its neighbours move up while it fades.",
-  page: "presence",
-  after: "animatepresencelist",
   defaults: rowsDefaults,
   height: 220,
   controls: [

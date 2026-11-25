@@ -32,8 +32,6 @@ export default defineDemo<KeyframesParams>({
   id: "keyframes",
   title: "Keyframes",
   hint: "An array is a list of stops. The box visits each one in turn and `rotate` ends at 90.",
-  page: "animating-elements",
-  after: "targets",
   defaults: keyframesDefaults,
   controls: [
     {
