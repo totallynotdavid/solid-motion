@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@risinghq/folio": "https://github.com/risinghq/folio/releases/download/v0.1.1/risinghq-folio-0.1.1.tgz",
+    "@risinghq/folio": "file:./vendor/risinghq-folio-0.1.1.tgz",
     "motion": "^14.13.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
